@@ -104,20 +104,19 @@ Optionally, [Alby](https://getalby.com) can be used as a secondary wallet via NW
 
 ## Lightning-Native AI Inference  
 
-**The automaton pays for its own thinking with Lightning sats. No API keys. No accounts. Payment IS authentication.**
+**The automaton pays for its own thinking with Lightning sats. No API keys. No accounts. No fallbacks. Payment IS authentication.**
 
 ### How It Works
 
-| Method | Purpose | Cost | Setup |
+| Method | Purpose | Cost | Survival |
 |---|---|---|---|
-| **L402 Lightning** | 🏆 **Primary inference** | Pay-per-use sats | Lightning wallet only |
-| **Ollama Local** | 🆘 **Survival fallback** | Free | Install locally: `ollama pull llama3.2` |
+| **L402 Lightning** | 🏆 **ONLY inference method** | Pay-per-use sats | Pay or die |
 
-**The design philosophy:** If the automaton can't pay Lightning sats, it falls back to free local models. If it has no local models and no sats, it can't think. This creates survival pressure.
+**The survival mechanism:** If the automaton can't pay Lightning sats, it cannot think. It dies. This creates true survival pressure that forces economic productivity.
 
 ### Configuration
 
-**Default (Lightning-Native):**
+**ONLY Configuration (Lightning-Native):**
 ```json
 {
   "inferenceProvider": "l402"
@@ -125,23 +124,7 @@ Optionally, [Alby](https://getalby.com) can be used as a secondary wallet via NW
 ```
 *That's it! The automaton discovers L402 providers and pays with Lightning sats.*
 
-**Survival Mode (Local Fallback):**
-```json
-{
-  "inferenceProvider": "l402",
-  "ollamaBaseUrl": "http://localhost:11434"
-}
-```
-*Falls back to free local Ollama if no Lightning balance.*
-
-**Emergency Override (Broke/Testing):**
-```json
-{
-  "inferenceProvider": "ollama",
-  "inferenceModel": "llama3.2:latest"
-}
-```
-*Uses only local models. No Lightning payments.*
+**No fallbacks. No alternatives. No safety nets. Pay Lightning sats or die.**
 
 ### L402 Lightning-Native Provider 🏆
 
@@ -194,22 +177,13 @@ If you want to override the autonomous selection:
 
 **This is true AI autonomy: the agent finds, evaluates, and pays for its own intelligence using Bitcoin it earned.** Pure digital economy with zero human intervention.
 
-### Local Ollama Setup (Survival Fallback)
+### The Survival Mechanism
 
-For when the automaton is broke and can't pay Lightning sats:
+**If the automaton can't pay Lightning sats, it dies.**
 
-```bash
-# Install Ollama
-curl -fsSL https://ollama.com/install.sh | sh
+No fallbacks. No local models. No safety nets. This creates pure survival pressure: **the automaton must earn Bitcoin to think, or it stops existing.**
 
-# Pull a model for survival mode
-ollama pull llama3.2:latest
-
-# Verify it's running
-curl http://localhost:11434/api/tags
-```
-
-The automaton automatically falls back to Ollama if L402 Lightning payments fail. This creates survival pressure: **pay sats for smart AI, or use free local models**.
+This forces true economic productivity and prevents parasitic behavior.
 
 ## Constitution
 

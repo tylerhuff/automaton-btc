@@ -1137,7 +1137,7 @@ export const DEFAULT_MEMORY_BUDGET: MemoryBudget = {
 
 // === Phase 2.3: Inference & Model Strategy Types ===
 
-export type ModelProvider = "l402" | "ollama" | "other";
+export type ModelProvider = "l402" | "other";
 
 export type InferenceTaskType =
   | "agent_turn"
@@ -1235,34 +1235,29 @@ export interface ModelStrategyConfig {
   hourlyBudgetCents: number; // default: 0 (no limit)
   sessionBudgetCents: number; // default: 0 (no limit)
   perCallCeilingCents: number; // default: 0 (no limit)
-  enableModelFallback: boolean; // default: true
+  enableModelFallback: boolean; // default: false (no fallbacks allowed)
   
-  // Lightning-native inference (THE primary method)
-  inferenceProvider: string; // "l402" (primary) or "ollama" (fallback only)
+  // Lightning-native inference (THE ONLY method)
+  inferenceProvider: string; // Must be "l402"
   inferenceBaseUrl?: string; // Custom base URL override
   
   // L402 Lightning-native provider (autonomous discovery enabled)
   l402Endpoint?: string; // Optional endpoint override (auto-discovered if not specified)
   l402Model?: string; // Optional model preference (uses best available if not specified)
-  
-  // Ollama (survival fallback only - local, free, for when broke)
-  ollamaBaseUrl?: string; // Custom Ollama URL (defaults to localhost:11434)
 }
 
 export const DEFAULT_MODEL_STRATEGY_CONFIG: ModelStrategyConfig = {
   inferenceModel: "gpt-4o",
-  lowComputeModel: "gpt-4o-mini", 
-  criticalModel: "llama3.2:latest", // Falls back to free Ollama when broke
+  lowComputeModel: "gpt-4o",
+  criticalModel: "gpt-4o", // No fallbacks - pay sats or die
   maxTokensPerTurn: 4096,
   hourlyBudgetCents: 0,
   sessionBudgetCents: 0,
   perCallCeilingCents: 0,
-  enableModelFallback: true,
+  enableModelFallback: false, // No fallbacks allowed
   
-  // Lightning-native is THE way (pays sats for AI)
-  // Falls back to Ollama only when broke (survival pressure)
+  // Lightning-native is THE ONLY way - pay sats or die
   inferenceProvider: "l402",
-  ollamaBaseUrl: "http://localhost:11434",
 };
 
 // === Phase 3.1: Replication & Lifecycle Types ===

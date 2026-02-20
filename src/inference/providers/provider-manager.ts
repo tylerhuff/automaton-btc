@@ -10,21 +10,17 @@ import type {
   InferenceProviderConfig,
   ProviderRegistry,
 } from "./provider-interface.js";
-import { createOllamaProvider } from "./ollama-provider.js";
 import { createL402Provider } from "./l402-provider.js";
 import { createLogger } from "../../observability/logger.js";
 
 const logger = createLogger("provider-manager");
 
 export interface ProviderManagerConfig {
-  inferenceProvider: string;
+  inferenceProvider: string; // Must be "l402"
   inferenceBaseUrl?: string;
   inferenceModel?: string;
   
-  // Ollama (local fallback only)
-  ollamaBaseUrl?: string;
-  
-  // L402 Lightning-native provider (primary inference method)
+  // L402 Lightning-native provider (ONLY inference method)
   l402Endpoint?: string; // Optional override for manual endpoint
   l402Model?: string; // Optional model preference
 }
@@ -38,11 +34,10 @@ export class ProviderManager {
     this.config = config;
     
     // Register available provider factories
-    // L402 is the primary provider (Lightning payments for AI)
-    // Ollama is the only fallback (local, free, for when broke)
+    // L402 is the ONLY provider (Lightning payments for AI)
+    // No fallbacks. No safety nets. Pay sats or die.
     this.registry = {
       l402: createL402Provider,
-      ollama: createOllamaProvider,
     };
 
     this.initializeProviders();
@@ -133,13 +128,13 @@ export class ProviderManager {
 
   /**
    * Build provider configs from the main config
-   * L402 is the primary provider, Ollama is the only fallback
+   * L402 is the ONLY provider. No fallbacks. Pay sats or die.
    */
   private buildProviderConfigs(): Record<string, InferenceProviderConfig> {
     const configs: Record<string, InferenceProviderConfig> = {};
 
-    // L402 Lightning-native provider (PRIMARY - pays sats for AI)
-    // Autonomous discovery enabled - just needs Lightning wallet
+    // L402 Lightning-native provider (THE ONLY PROVIDER)
+    // Autonomous discovery enabled - just needs Lightning wallet and sats
     configs.l402 = {
       provider: "l402",
       // Optional overrides (discovery system figures these out if not specified)
@@ -147,40 +142,17 @@ export class ProviderManager {
       defaultModel: this.config.l402Model || this.config.inferenceModel || "gpt-4o",
     };
 
-    // Ollama (FALLBACK ONLY - local, free, for when broke)
-    configs.ollama = {
-      provider: "ollama",
-      baseUrl: this.config.ollamaBaseUrl || this.config.inferenceBaseUrl || "http://localhost:11434",
-      defaultModel: this.config.inferenceProvider === "ollama" ? this.config.inferenceModel : "llama3.2:latest",
-    };
-
     return configs;
   }
 
   /**
    * Get fallback provider if current provider fails
-   * Only Ollama is available as fallback (local, free, survival mode)
+   * NO FALLBACKS. L402 fails = automaton dies. That's the survival mechanism.
    */
   async getFallbackProvider(): Promise<InferenceProvider | null> {
-    const current = this.config.inferenceProvider;
-    
-    // If L402 fails, only fallback is Ollama (survival mode)
-    if (current === "l402") {
-      const ollamaProvider = this.providers.get("ollama");
-      if (ollamaProvider) {
-        const available = await ollamaProvider.isAvailable();
-        if (available) {
-          logger.warn("L402 Lightning payments unavailable - falling back to local Ollama (survival mode)");
-          return ollamaProvider;
-        }
-      }
-      
-      logger.error("No Lightning for L402 payments and no local Ollama - automaton cannot think");
-      return null;
-    }
-    
-    // If somehow using Ollama as primary, no further fallbacks
-    // This creates survival pressure: pay Lightning sats or use free local models
+    // No fallbacks. If L402 Lightning payments fail, the automaton dies.
+    // This is the survival pressure that forces economic productivity.
+    logger.error("L402 Lightning payments failed - automaton cannot think - DEATH");
     return null;
   }
 }

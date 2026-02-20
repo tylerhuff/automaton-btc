@@ -50,7 +50,6 @@ export class InferenceRouter {
           inferenceProvider: modelConfig.inferenceProvider || "l402",
           inferenceBaseUrl: modelConfig.inferenceBaseUrl,
           inferenceModel: modelConfig.inferenceModel,
-          ollamaBaseUrl: modelConfig.ollamaBaseUrl,
           l402Endpoint: modelConfig.l402Endpoint,
           l402Model: modelConfig.l402Model,
         };

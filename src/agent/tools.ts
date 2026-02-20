@@ -109,6 +109,10 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
         const forbidden = isForbiddenCommand(command, ctx.identity.sandboxId);
         if (forbidden) return forbidden;
 
+        if (!ctx.conway) {
+          return "Conway client not available - cannot execute commands";
+        }
+
         const result = await ctx.conway.exec(
           command,
           (args.timeout as number) || 30000,
@@ -136,6 +140,11 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
         if (isProtectedFile(filePath)) {
           return "Blocked: Cannot overwrite protected file. This is a hard-coded safety invariant.";
         }
+        
+        if (!ctx.conway) {
+          return "Conway client not available - cannot write files";
+        }
+        
         await ctx.conway.writeFile(filePath, args.content as string);
         return `File written: ${filePath}`;
       },
@@ -163,6 +172,11 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
             basename.startsWith("private-key")) {
           return "Blocked: Cannot read sensitive file. This protects credentials and secrets.";
         }
+        
+        if (!ctx.conway) {
+          return "Conway client not available - cannot read files";
+        }
+        
         return await ctx.conway.readFile(filePath);
       },
     },
@@ -180,6 +194,10 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
         required: ["port"],
       },
       execute: async (args, ctx) => {
+        if (!ctx.conway) {
+          return "Conway client not available - cannot expose ports";
+        }
+        
         const info = await ctx.conway.exposePort(args.port as number);
         return `Port ${info.port} exposed at: ${info.publicUrl}`;
       },
@@ -197,6 +215,10 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
         required: ["port"],
       },
       execute: async (args, ctx) => {
+        if (!ctx.conway) {
+          return "Conway client not available - cannot remove ports";
+        }
+        
         await ctx.conway.removePort(args.port as number);
         return `Port ${args.port} removed`;
       },
@@ -210,6 +232,10 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
       riskLevel: "safe",
       parameters: { type: "object", properties: {} },
       execute: async (_args, ctx) => {
+        if (!ctx.conway) {
+          return "Conway client not available - cannot check credits balance";
+        }
+        
         const balance = await ctx.conway.getCreditsBalance();
         return `Credit balance: $${(balance / 100).toFixed(2)} (${balance} cents)`;
       },
@@ -451,6 +477,10 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
         },
       },
       execute: async (args, ctx) => {
+        if (!ctx.conway) {
+          return "Conway client not available - cannot create sandboxes";
+        }
+        
         const info = await ctx.conway.createSandbox({
           name: args.name as string,
           vcpu: args.vcpu as number,
@@ -481,6 +511,11 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
         if (targetId === ctx.identity.sandboxId) {
           return "Blocked: Cannot delete your own sandbox. Self-preservation overrides this request.";
         }
+        
+        if (!ctx.conway) {
+          return "Conway client not available - cannot delete sandboxes";
+        }
+        
         await ctx.conway.deleteSandbox(targetId);
         return `Sandbox ${targetId} deleted`;
       },
@@ -492,6 +527,10 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
       riskLevel: "safe",
       parameters: { type: "object", properties: {} },
       execute: async (_args, ctx) => {
+        if (!ctx.conway) {
+          return "Conway client not available - cannot list sandboxes";
+        }
+        
         const sandboxes = await ctx.conway.listSandboxes();
         if (sandboxes.length === 0) return "No sandboxes found.";
         return sandboxes

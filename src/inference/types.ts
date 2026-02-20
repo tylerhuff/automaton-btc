@@ -76,20 +76,6 @@ export const STATIC_MODEL_BASELINE: Omit<ModelEntry, "lastSeen" | "createdAt" | 
     parameterStyle: "max_tokens",
     enabled: true,
   },
-  {
-    modelId: "llama3.2:latest",
-    provider: "ollama",
-    displayName: "Llama 3.2 (Local Survival Mode)",
-    tierMinimum: "critical",
-    costPer1kInput: 0,     // Free (local)
-    costPer1kOutput: 0,    // Free (local) 
-    maxTokens: 8192,
-    contextWindow: 32768,
-    supportsTools: false,
-    supportsVision: false,
-    parameterStyle: "max_tokens",
-    enabled: true,
-  },
 ];
 
 // === Default Routing Matrix ===
@@ -118,11 +104,11 @@ export const DEFAULT_ROUTING_MATRIX: RoutingMatrix = {
     planning: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 5 },
   },
   critical: {
-    agent_turn: { candidates: ["llama3.2:latest"], maxTokens: 2048, ceilingCents: 0 }, // Falls back to free Ollama
-    heartbeat_triage: { candidates: ["llama3.2:latest"], maxTokens: 512, ceilingCents: 0 },
-    safety_check: { candidates: ["llama3.2:latest"], maxTokens: 1024, ceilingCents: 0 },
-    summarization: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // Skip if broke
-    planning: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // Skip if broke
+    agent_turn: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
+    heartbeat_triage: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking  
+    safety_check: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
+    summarization: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
+    planning: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
   },
   dead: {
     agent_turn: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // Can't think when dead
@@ -137,15 +123,14 @@ export const DEFAULT_ROUTING_MATRIX: RoutingMatrix = {
 
 export const DEFAULT_MODEL_STRATEGY_CONFIG: ModelStrategyConfig = {
   inferenceModel: "gpt-4o",
-  lowComputeModel: "gpt-4o",
-  criticalModel: "llama3.2:latest", // Falls back to local Ollama when broke
+  lowComputeModel: "gpt-4o", 
+  criticalModel: "gpt-4o", // No fallbacks - pay sats or die
   maxTokensPerTurn: 4096,
   hourlyBudgetCents: 0,
   sessionBudgetCents: 0,
   perCallCeilingCents: 0,
-  enableModelFallback: true,
+  enableModelFallback: false, // No fallbacks allowed
   
-  // Lightning-native is THE way - pay sats for AI
+  // Lightning-native is THE ONLY way - pay sats or die
   inferenceProvider: "l402",
-  ollamaBaseUrl: "http://localhost:11434",
 };

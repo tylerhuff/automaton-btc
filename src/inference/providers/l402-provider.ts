@@ -84,54 +84,25 @@ export class L402Provider extends BaseInferenceProvider {
   }
 
   /**
-   * Ensure we have discovered and selected a provider
+   * Hardcoded to use Sats4AI - no longer using discovery
+   * @deprecated - keeping for compatibility but not used with Sats4AI
    */
   private async ensureProviderSelected(): Promise<DiscoveredL402Service> {
-    // If manual endpoint provided, use it
-    if (this.manualEndpoint) {
-      logger.debug("Using manually configured L402 endpoint");
-      return {
-        id: 'manual',
-        name: 'Manual Configuration',
-        url: this.manualEndpoint,
-        description: 'Manually configured L402 endpoint',
-        pricingSats: 0,
-        pricingModel: 'per-request',
-        categories: ['AI'],
-        avgRating: 0,
-        domainVerified: false,
-        discoveredAt: new Date().toISOString(),
-        isActive: true,
-        supportedModels: [this.manualModel || 'gpt-4o'],
-      };
-    }
-
-    // Use cached selection if available and recent
-    if (this.selectedProvider) {
-      return this.selectedProvider;
-    }
-
-    logger.info("Discovering and selecting optimal L402 inference provider...");
-    
-    // Discover providers and select the best one
-    const providers = await this.discovery.discoverProviders();
-    
-    if (providers.length === 0) {
-      throw new Error("No L402 inference providers found. The Lightning AI economy may be offline.");
-    }
-
-    const selected = await this.discovery.selectBestProvider(providers);
-    
-    if (!selected) {
-      throw new Error("Failed to select an L402 provider. All discovered services may be unavailable.");
-    }
-
-    this.selectedProvider = selected;
-    this.fallbackProviders = await this.discovery.getFallbackProviders(selected.id);
-    
-    logger.info(`Auto-selected L402 provider: ${selected.name} at ${selected.url} (${selected.pricingSats} sats per request)`);
-    
-    return selected;
+    logger.debug("Using hardcoded Sats4AI endpoint");
+    return {
+      id: 'sats4ai',
+      name: 'Sats4AI',
+      url: 'https://sats4ai.com/api/l402/text-generation',
+      description: 'Sats4AI L402 text generation endpoint',
+      pricingSats: 210, // Estimated from context
+      pricingModel: 'per-request',
+      categories: ['AI'],
+      avgRating: 0,
+      domainVerified: false,
+      discoveredAt: new Date().toISOString(),
+      isActive: true,
+      supportedModels: ['Standard', 'Best'],
+    };
   }
 
   async chat(messages: ChatMessage[], options?: ChatOptions): Promise<InferenceResponse> {
@@ -139,74 +110,60 @@ export class L402Provider extends BaseInferenceProvider {
       throw new Error("No Lightning wallet configured - cannot use L402 provider");
     }
 
-    // Ensure we have a selected provider
-    let currentProvider = await this.ensureProviderSelected();
-    const model = options?.model || currentProvider.supportedModels?.[0] || this.defaultModel;
-    const tools = this.formatTools(options?.tools);
-
-    // Build the OpenAI-compatible request body
-    const requestBody: Record<string, unknown> = {
+    // Use hardcoded Sats4AI endpoint
+    const endpoint = "https://sats4ai.com/api/l402/text-generation";
+    const model = options?.model === "Best" ? "Best" : "Standard"; // Only Standard or Best supported
+    
+    // Convert chat messages to single input string
+    const input = this.formatMessagesAsInput(messages);
+    
+    // Build Sats4AI request format (NOT OpenAI format)
+    const requestBody = {
       model,
-      messages: messages.map(this.formatMessage),
-      stream: false,
-      max_tokens: options?.maxTokens || 4096,
+      input
     };
 
-    if (options?.temperature !== undefined) {
-      requestBody.temperature = options.temperature;
+    logger.debug(`Attempting L402 inference with Sats4AI at ${endpoint} using model: ${model}`);
+    
+    try {
+      const result = await this.attemptInference(endpoint, requestBody, model);
+      return result;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Sats4AI L402 inference failed: ${errorMsg}`);
+      throw new Error(`Sats4AI L402 inference failed: ${errorMsg}`);
     }
-
-    if (tools && tools.length > 0) {
-      requestBody.tools = tools;
-      requestBody.tool_choice = "auto";
-    }
-
-    // Try primary provider, then fallbacks
-    const providersToTry = [currentProvider, ...this.fallbackProviders];
-    let lastError: Error | null = null;
-
-    for (let i = 0; i < providersToTry.length; i++) {
-      const provider = providersToTry[i];
-      
-      try {
-        logger.debug(`Attempting L402 inference with ${provider.name} at ${provider.url}`);
-        
-        const result = await this.attemptInference(provider, requestBody, model);
-        
-        if (i > 0) {
-          logger.info(`Succeeded with fallback provider: ${provider.name}`);
-          // Update selected provider if fallback worked
-          this.selectedProvider = provider;
-          this.fallbackProviders = await this.discovery.getFallbackProviders(provider.id);
-        }
-        
-        return result;
-        
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        logger.warn(`L402 provider ${provider.name} failed: ${lastError.message}`);
-        
-        // Continue to next provider
-        continue;
-      }
-    }
-
-    // All providers failed
-    throw new Error(`All L402 providers failed. Last error: ${lastError?.message || 'Unknown error'}`);
   }
 
   /**
-   * Attempt inference with a specific L402 provider
+   * Convert chat messages into a single input string for Sats4AI
+   */
+  private formatMessagesAsInput(messages: ChatMessage[]): string {
+    return messages.map(msg => {
+      if (msg.role === 'system') {
+        return `System: ${msg.content}`;
+      } else if (msg.role === 'user') {
+        return `User: ${msg.content}`;
+      } else if (msg.role === 'assistant') {
+        return `Assistant: ${msg.content}`;
+      } else {
+        return `${msg.role}: ${msg.content}`;
+      }
+    }).join('\n\n');
+  }
+
+  /**
+   * Attempt inference with Sats4AI L402 endpoint
    */
   private async attemptInference(
-    provider: DiscoveredL402Service, 
-    requestBody: Record<string, unknown>,
+    endpoint: string, 
+    requestBody: { model: string, input: string },
     model: string
   ): Promise<InferenceResponse> {
     // Step 1: Make initial request (should get 402 Payment Required)
-    logger.debug(`Making initial L402 request to ${provider.url}`);
+    logger.debug(`Making initial L402 request to ${endpoint}`);
     
-    const initialResponse = await this.httpClient.request(provider.url, {
+    const initialResponse = await this.httpClient.request(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -218,37 +175,37 @@ export class L402Provider extends BaseInferenceProvider {
 
     // Step 2: If we get 402, extract the Lightning invoice and macaroon
     if (initialResponse.status === 402) {
-      logger.debug(`Received HTTP 402 from ${provider.name} - extracting L402 challenge`);
+      logger.debug(`Received HTTP 402 from Sats4AI - extracting L402 challenge`);
       
       const wwwAuthenticate = initialResponse.headers.get("www-authenticate") || 
                              initialResponse.headers.get("WWW-Authenticate");
       
       if (!wwwAuthenticate) {
-        throw new Error(`HTTP 402 response missing WWW-Authenticate header from ${provider.name}`);
+        throw new Error(`HTTP 402 response missing WWW-Authenticate header from Sats4AI`);
       }
 
       // Parse WWW-Authenticate header: "L402 macaroon=<macaroon>, invoice=<bolt11>"
       const { macaroon, invoice } = this.parseL402Challenge(wwwAuthenticate);
 
       // Step 3: Pay the Lightning invoice
-      logger.info(`Paying ${provider.pricingSats} sats to ${provider.name} for AI inference...`);
+      logger.info(`Paying Lightning invoice to Sats4AI for AI inference...`);
       
       const paymentResult = await payLightningInvoice(this.lightningAccount!, invoice);
       
       if (!paymentResult.success) {
-        throw new Error(`Lightning payment to ${provider.name} failed: ${paymentResult.error}`);
+        throw new Error(`Lightning payment to Sats4AI failed: ${paymentResult.error}`);
       }
 
       const preimage = paymentResult.paymentHash;
       if (!preimage) {
-        throw new Error(`Lightning payment succeeded but no preimage returned from ${provider.name}`);
+        throw new Error(`Lightning payment succeeded but no preimage returned from Sats4AI`);
       }
 
       // Step 4: Re-send request with L402 authorization header
-      logger.debug(`Payment successful to ${provider.name}, re-sending request with L402 token`);
+      logger.debug(`Payment successful to Sats4AI, re-sending request with L402 token`);
       
       const l402Token = `${macaroon}:${preimage}`;
-      const authorizedResponse = await this.httpClient.request(provider.url, {
+      const authorizedResponse = await this.httpClient.request(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -261,23 +218,23 @@ export class L402Provider extends BaseInferenceProvider {
 
       if (!authorizedResponse.ok) {
         const text = await authorizedResponse.text();
-        throw new Error(`L402 API error after payment to ${provider.name}: ${authorizedResponse.status}: ${text}`);
+        throw new Error(`L402 API error after payment to Sats4AI: ${authorizedResponse.status}: ${text}`);
       }
 
       const data = await authorizedResponse.json() as any;
-      logger.info(`Successfully completed L402 inference with ${provider.name} for ${provider.pricingSats} sats`);
-      return this.parseResponse(data, model);
+      logger.info(`Successfully completed L402 inference with Sats4AI`);
+      return this.parseSats4AIResponse(data, model);
 
     } else if (initialResponse.ok) {
       // No payment required (already authorized or free tier)
-      logger.debug(`No payment required for ${provider.name}, processing response`);
+      logger.debug(`No payment required for Sats4AI, processing response`);
       const data = await initialResponse.json() as any;
-      return this.parseResponse(data, model);
+      return this.parseSats4AIResponse(data, model);
 
     } else {
       // Some other error
       const text = await initialResponse.text();
-      throw new Error(`L402 API error from ${provider.name}: ${initialResponse.status}: ${text}`);
+      throw new Error(`L402 API error from Sats4AI: ${initialResponse.status}: ${text}`);
     }
   }
 
@@ -508,7 +465,49 @@ export class L402Provider extends BaseInferenceProvider {
   }
 
   /**
-   * Parse the API response into our standard format
+   * Parse the Sats4AI response into our standard format
+   */
+  private parseSats4AIResponse(data: any, model: string): InferenceResponse {
+    // Sats4AI might return different format than OpenAI
+    // Handle both OpenAI-compatible and simple text response formats
+    
+    let content = "";
+    let usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+
+    if (data.choices && data.choices.length > 0) {
+      // OpenAI-compatible format
+      const choice = data.choices[0];
+      content = choice.message?.content || choice.text || "";
+      usage = this.parseTokenUsage(data);
+    } else if (typeof data.response === 'string') {
+      // Simple text response format
+      content = data.response;
+    } else if (typeof data.text === 'string') {
+      // Alternative simple format
+      content = data.text;
+    } else if (typeof data === 'string') {
+      // Plain text response
+      content = data;
+    } else {
+      throw new Error("Unexpected Sats4AI response format");
+    }
+
+    return {
+      id: data.id || `sats4ai-${Date.now()}`,
+      model: data.model || model,
+      message: {
+        role: "assistant",
+        content: content,
+        tool_calls: undefined,
+      },
+      toolCalls: undefined,
+      usage,
+      finishReason: "stop",
+    };
+  }
+
+  /**
+   * Parse the API response into our standard format (legacy method)
    */
   private parseResponse(data: any, model: string): InferenceResponse {
     const choice = data.choices?.[0];
