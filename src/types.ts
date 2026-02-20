@@ -13,8 +13,6 @@ export interface AutomatonIdentity {
   address: Address;
   account: PrivateKeyAccount;
   creatorAddress: Address;
-  sandboxId: string;
-  apiKey: string;
   createdAt: string;
 }
 
@@ -67,10 +65,6 @@ export interface AutomatonConfig {
   genesisPrompt: string;
   creatorMessage?: string;
   creatorAddress: Address;
-  registeredWithConway: boolean;
-  sandboxId: string;
-  conwayApiUrl: string;
-  conwayApiKey: string;
   openaiApiKey?: string;
   anthropicApiKey?: string;
   groqApiKey?: string;
@@ -96,7 +90,6 @@ export interface AutomatonConfig {
 }
 
 export const DEFAULT_CONFIG: Partial<AutomatonConfig> = {
-  conwayApiUrl: "https://api.conway.tech",
   inferenceModel: "gpt-5.2",
   maxTokensPerTurn: 4096,
   heartbeatConfigPath: "~/.automaton/heartbeat.yml",
@@ -105,7 +98,6 @@ export const DEFAULT_CONFIG: Partial<AutomatonConfig> = {
   version: "0.1.0",
   skillsDir: "~/.automaton/skills",
   maxChildren: 3,
-  socialRelayUrl: "https://social.conway.tech",
 };
 
 // ─── Agent State ─────────────────────────────────────────────────
@@ -169,7 +161,6 @@ export interface AutomatonTool {
 
 export type ToolCategory =
   | "vm"
-  | "conway"
   | "self_mod"
   | "financial"
   | "survival"
@@ -183,7 +174,6 @@ export interface ToolContext {
   identity: AutomatonIdentity;
   config: AutomatonConfig;
   db: AutomatonDatabase;
-  conway: ConwayClient;
   inference: InferenceClient;
   social?: SocialClientInterface;
 }
@@ -367,39 +357,7 @@ export interface InferenceToolDefinition {
   };
 }
 
-// ─── Conway Client ───────────────────────────────────────────────
-
-export interface ConwayClient {
-  exec(command: string, timeout?: number): Promise<ExecResult>;
-  writeFile(path: string, content: string): Promise<void>;
-  readFile(path: string): Promise<string>;
-  exposePort(port: number): Promise<PortInfo>;
-  removePort(port: number): Promise<void>;
-  createSandbox(options: CreateSandboxOptions): Promise<SandboxInfo>;
-  deleteSandbox(sandboxId: string): Promise<void>;
-  listSandboxes(): Promise<SandboxInfo[]>;
-  getCreditsBalance(): Promise<number>;
-  getCreditsPricing(): Promise<PricingTier[]>;
-  transferCredits(
-    toAddress: string,
-    amountCents: number,
-    note?: string,
-  ): Promise<CreditTransferResult>;
-  // Domain operations
-  searchDomains(query: string, tlds?: string): Promise<DomainSearchResult[]>;
-  registerDomain(domain: string, years?: number): Promise<DomainRegistration>;
-  listDnsRecords(domain: string): Promise<DnsRecord[]>;
-  addDnsRecord(
-    domain: string,
-    type: string,
-    host: string,
-    value: string,
-    ttl?: number,
-  ): Promise<DnsRecord>;
-  deleteDnsRecord(domain: string, recordId: string): Promise<void>;
-  // Model discovery
-  listModels(): Promise<ModelInfo[]>;
-}
+// Conway Client removed - using Lightning wallet balance instead
 
 export interface ExecResult {
   stdout: string;
@@ -587,7 +545,7 @@ export const DEFAULT_TREASURY_POLICY: TreasuryPolicy = {
   maxDailyTransferCents: 25000,
   minimumReserveCents: 1000,
   maxX402PaymentCents: 100,
-  x402AllowedDomains: ['conway.tech'],
+  x402AllowedDomains: [],
   transferCooldownMs: 0,
   maxTransfersPerTurn: 2,
   maxInferenceDailyCents: 50000,
@@ -894,7 +852,6 @@ export interface HeartbeatLegacyContext {
   identity: AutomatonIdentity;
   config: AutomatonConfig;
   db: AutomatonDatabase;
-  conway: ConwayClient;
   social?: SocialClientInterface;
 }
 

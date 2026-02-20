@@ -2516,6 +2516,144 @@ Model: ${ctx.inference.getDefaultModel()}
         return `x402 (Lightning) fetch succeeded:\n${responseStr}`;
       },
     },
+
+    // ── VPS Survival Tools ──
+    {
+      name: "check_vps_status",
+      description: "Check the status and remaining time on your VPS hosting. CRITICAL for survival - without VPS, you cease to exist.",
+      category: "survival",
+      riskLevel: "safe",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: []
+      },
+      execute: async (_args, _ctx) => {
+        try {
+          // Dynamic import to avoid build issues
+          const { VPSManager } = await import("../skills/vps-manager.js");
+          const vpsManager = new VPSManager();
+          const status = await vpsManager.checkVPSStatus();
+          return `VPS Status:
+- ID: ${status.id}
+- Status: ${status.status}
+- IP: ${status.ip_address}
+- Days Remaining: ${status.days_remaining}
+- Monthly Cost: $${status.monthly_cost_usd}
+- Payment Status: ${status.payment_status}
+- Specs: ${status.specifications.ram_mb}MB RAM, ${status.specifications.disk_gb}GB disk, ${status.specifications.cpu_cores} CPU
+- Expires: ${status.expires_at}
+
+${status.days_remaining <= 7 ? '⚠️  WARNING: Renewal needed soon!' : '✅ VPS hosting is current'}`;
+        } catch (error) {
+          return `Error checking VPS status: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        }
+      }
+    },
+
+    {
+      name: "renew_vps",
+      description: "Renew your VPS hosting for another month using Bitcoin payment. SURVIVAL CRITICAL - prevents hosting termination.",
+      category: "survival", 
+      riskLevel: "caution",
+      parameters: {
+        type: "object",
+        properties: {
+          confirm: {
+            type: "boolean",
+            description: "Confirm you want to spend Bitcoin/Lightning to renew VPS hosting"
+          }
+        },
+        required: ["confirm"]
+      },
+      execute: async (args, _ctx) => {
+        if (!args.confirm) {
+          return "VPS renewal cancelled - confirmation required for Bitcoin payment";
+        }
+
+        try {
+          const { VPSManager } = await import("../skills/vps-manager.js");
+          const vpsManager = new VPSManager();
+          const result = await vpsManager.renewVPS();
+          
+          if (result.success) {
+            return `✅ VPS renewed successfully!
+- Transaction ID: ${result.transaction_id}
+- New expiry: ${result.new_expiry_date}
+- Amount paid: $${result.amount_paid_usd} (${result.amount_paid_sats} sats)`;
+          } else {
+            return `❌ VPS renewal failed: ${result.message}`;
+          }
+        } catch (error) {
+          return `Error renewing VPS: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        }
+      }
+    },
+
+    {
+      name: "get_vps_info",
+      description: "Get detailed information about your VPS including IP address, specifications, and hosting details.",
+      category: "survival",
+      riskLevel: "safe", 
+      parameters: {
+        type: "object",
+        properties: {},
+        required: []
+      },
+      execute: async (_args, _ctx) => {
+        try {
+          const { VPSManager } = await import("../skills/vps-manager.js");
+          const vpsManager = new VPSManager();
+          const info = await vpsManager.getVPSInfo();
+          if (!info) {
+            return "Could not retrieve VPS information";
+          }
+
+          return `VPS Information:
+- Name: ${info.name}
+- ID: ${info.id}
+- Public IP: ${info.ip_address}
+- Status: ${info.status}
+- Created: ${info.created_at}
+- Expires: ${info.expires_at}
+- Days Remaining: ${info.days_remaining}
+
+Specifications:
+- RAM: ${info.specifications.ram_mb}MB
+- Disk: ${info.specifications.disk_gb}GB  
+- CPU: ${info.specifications.cpu_cores} cores
+- Bandwidth: ${info.specifications.bandwidth_gb}GB/month
+
+Billing:
+- Monthly Cost: $${info.monthly_cost_usd}
+- Payment Status: ${info.payment_status}`;
+        } catch (error) {
+          return `Error getting VPS info: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        }
+      }
+    },
+
+    {
+      name: "check_vps_renewal_urgency",
+      description: "Check if VPS renewal is urgently needed (less than 3 days remaining). Use for monitoring and alerts.",
+      category: "survival",
+      riskLevel: "safe",
+      parameters: {
+        type: "object", 
+        properties: {},
+        required: []
+      },
+      execute: async (_args, _ctx) => {
+        try {
+          const { VPSManager } = await import("../skills/vps-manager.js");
+          const vpsManager = new VPSManager();
+          const urgency = await vpsManager.isRenewalUrgent();
+          return `${urgency.urgent ? '🚨 URGENT' : '✅ OK'}: ${urgency.message}`;
+        } catch (error) {
+          return `Error checking renewal urgency: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        }
+      }
+    },
   ];
 }
 

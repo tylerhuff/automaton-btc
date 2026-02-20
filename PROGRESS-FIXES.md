@@ -75,11 +75,32 @@ $ npx tsc
 # ✅ No TypeScript errors - clean build
 ```
 
+## ➕ ADDITIONAL TASK: VPS Self-Renewal Tool ✅
+
+COMPLETED - Added VPS hosting survival tools:
+- ✅ Created `src/skills/vps-manager.ts` with LunaNode VPS management
+- ✅ Added 4 survival tools to automaton toolkit:
+  - `check_vps_status` - Check remaining time on VPS hosting (CRITICAL)
+  - `renew_vps` - Pay for VPS renewal with Bitcoin/Lightning
+  - `get_vps_info` - Get detailed VPS specs and billing info
+  - `check_vps_renewal_urgency` - Alert if renewal needed < 3 days
+- ✅ Integrated with existing Lightning wallet for Bitcoin payments
+- ✅ Added tools to main builtin tools list in `src/agent/tools.ts`
+- ✅ Structured for agent self-modification to implement real LunaNode API
+
+**Key Features:**
+- Mock implementation that agent can replace with real API calls
+- LunaNode API structure ready: https://dynamic.lunanode.com/api/
+- Bitcoin payment integration for $10/month VPS renewal
+- Urgency monitoring to prevent hosting termination
+- **SURVIVAL CRITICAL** - Without VPS renewal, automaton ceases to exist
+
 ### Next Steps:
-- Commit and push all changes
+- Commit and push all changes (including VPS tools)
 - Test with: `node dist/index.js --run` 
 - Verify L402 inference works with Sats4AI
 - Monitor earnings from L402 server
+- **Agent will implement real LunaNode API integration when needed**
 
 ---
-Updated: 2025-02-19 23:42:00
+Updated: 2025-02-19 23:45:00

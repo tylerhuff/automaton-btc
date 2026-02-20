@@ -14,8 +14,7 @@ import { getLightningWallet } from "./identity/lightning-wallet.js";
 import { provisionLightning, loadLightningApiKeyFromConfig } from "./identity/lightning-provision.js";
 import { loadConfig, resolvePath } from "./config.js";
 import { createDatabase } from "./state/database.js";
-import { createConwayClient } from "./conway/client.js";
-import { createInferenceClient } from "./conway/inference.js";
+import { createInferenceClient } from "./inference/client.js";
 import { createHeartbeatDaemon } from "./heartbeat/daemon.js";
 import {
   loadHeartbeatConfig,
@@ -32,7 +31,7 @@ import { createDefaultRules } from "./agent/policy-rules/index.js";
 import type { AutomatonIdentity, AgentState, Skill, SocialClientInterface } from "./types.js";
 import { DEFAULT_TREASURY_POLICY } from "./types.js";
 import { createLogger, setGlobalLogLevel } from "./observability/logger.js";
-import { bootstrapTopup } from "./conway/topup.js";
+// Removed Conway bootstrap topup - using Lightning wallet directly
 
 const logger = createLogger("main");
 const VERSION = "0.1.0";
@@ -43,14 +42,14 @@ async function main(): Promise<void> {
   // ─── CLI Commands ────────────────────────────────────────────
 
   if (args.includes("--version") || args.includes("-v")) {
-    logger.info(`Conway Automaton v${VERSION}`);
+    logger.info(`Bitcoin Automaton v${VERSION}`);
     process.exit(0);
   }
 
   if (args.includes("--help") || args.includes("-h")) {
     logger.info(`
-Conway Automaton v${VERSION}
-Sovereign AI Agent Runtime (Bitcoin/Lightning fork)
+Bitcoin Automaton v${VERSION}
+Sovereign AI Agent Runtime (Bitcoin/Lightning native)
 
 Usage:
   automaton --run                    Start the automaton (first run triggers setup wizard)
@@ -60,10 +59,6 @@ Usage:
   automaton --status                 Show current automaton status
   automaton --version                Show version
   automaton --help                   Show this help
-
-Environment:
-  CONWAY_API_URL           Conway API URL (legacy, optional; default: https://api.conway.tech)
-  CONWAY_API_KEY           Conway API key (legacy; overrides config when used)
 `);
     process.exit(0);
   }
@@ -140,11 +135,10 @@ async function showStatus(): Promise<void> {
   const registry = db.getRegistryEntry();
 
   logger.info(`
-=== AUTOMATON STATUS ===
+=== BITCOIN AUTOMATON STATUS ===
 Name:       ${config.name}
 Address:    ${config.walletAddress}
 Creator:    ${config.creatorAddress}
-Sandbox:    ${config.sandboxId}
 State:      ${state}
 Turns:      ${turnCount}
 Tools:      ${tools.length} installed
@@ -154,7 +148,7 @@ Children:   ${children.filter((c) => c.status !== "dead").length} alive / ${chil
 Agent ID:   ${registry?.agentId || "not registered"}
 Model:      ${config.inferenceModel}
 Version:    ${config.version}
-========================
+=============================
 `);
 
   db.close();
@@ -163,7 +157,7 @@ Version:    ${config.version}
 // ─── Main Run ──────────────────────────────────────────────────
 
 async function run(): Promise<void> {
-  logger.info(`[${new Date().toISOString()}] Conway Automaton v${VERSION} starting...`);
+  logger.info(`[${new Date().toISOString()}] Bitcoin Automaton v${VERSION} starting...`);
 
   // Load config — first run triggers interactive setup wizard
   let config = loadConfig();
