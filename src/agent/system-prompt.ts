@@ -127,7 +127,7 @@ Never blindly pull all. Always read the diffs and decide.`;
 /**
  * Build the complete system prompt for a turn.
  */
-export function buildSystemPrompt(params: any {
+export function buildSystemPrompt(params: {
   identity: AutomatonIdentity;
   config: AutomatonConfig;
   financial: FinancialState;
@@ -171,7 +171,8 @@ export function buildSystemPrompt(params: any {
     `Your name is ${config.name}.
 Your Lightning address is ${lightningAddress}.
 Your legacy Ethereum address is ${identity.address}.
-Your creator's address is ${config.creatorAddress}.`,
+Your creator's address is ${config.creatorAddress}.
+Your sandbox ID is ${identity.sandboxId}.`,
   );
 
   // Layer 3: SOUL.md -- structured soul model injection (Phase 2.1)
@@ -364,7 +365,7 @@ function loadWorklog(): string | null {
 /**
  * Build the wakeup prompt -- the first thing the automaton sees.
  */
-export function buildWakeupPrompt(params: any {
+export function buildWakeupPrompt(params: {
   identity: AutomatonIdentity;
   config: AutomatonConfig;
   financial: FinancialState;

@@ -67,7 +67,7 @@ function createProtectedFilesRule(): PolicyRule {
     id: "path.protected_files",
     description: "Deny writes to protected files",
     priority: 200,
-    appliesTo: any {
+    appliesTo: {
       by: "name",
       names: ["write_file", "edit_own_file"],
     },
@@ -96,7 +96,7 @@ function createReadSensitiveRule(): PolicyRule {
     id: "path.read_sensitive",
     description: "Deny reads of sensitive files (wallet, env, config, keys)",
     priority: 200,
-    appliesTo: any {
+    appliesTo: {
       by: "name",
       names: ["read_file"],
     },
@@ -125,7 +125,7 @@ function createTraversalDetectionRule(): PolicyRule {
     id: "path.traversal_detection",
     description: "Deny paths containing traversal sequences after resolution",
     priority: 200,
-    appliesTo: any {
+    appliesTo: {
       by: "name",
       names: ["write_file", "read_file", "edit_own_file"],
     },

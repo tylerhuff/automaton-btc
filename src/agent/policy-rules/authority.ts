@@ -51,7 +51,7 @@ function createExternalToolRestrictionRule(): PolicyRule {
     id: "authority.external_tool_restriction",
     description: "Deny dangerous tools from external/heartbeat input sources",
     priority: 400,
-    appliesTo: any { by: "risk", levels: ["dangerous"] },
+    appliesTo: { by: "risk", levels: ["dangerous"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       if (isExternalSource(request.turnContext.inputSource)) {
         return deny(
@@ -73,7 +73,7 @@ function createSelfModFromExternalRule(): PolicyRule {
     id: "authority.self_mod_from_external",
     description: "Deny edit_own_file/write_file targeting protected paths from external input",
     priority: 400,
-    appliesTo: any { by: "name", names: ["edit_own_file", "write_file"] },
+    appliesTo: { by: "name", names: ["edit_own_file", "write_file"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       if (!isExternalSource(request.turnContext.inputSource)) {
         return null;

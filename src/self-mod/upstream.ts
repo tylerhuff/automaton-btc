@@ -24,7 +24,7 @@ function git(args: string[]): string {
 /**
  * Return origin URL (credentials stripped), current branch, and HEAD info.
  */
-export function getRepoInfo(): any {
+export function getRepoInfo(): {
   originUrl: string;
   branch: string;
   headHash: string;
@@ -42,9 +42,9 @@ export function getRepoInfo(): any {
 /**
  * Fetch origin and report how many commits we're behind.
  */
-export function checkUpstream(): any {
+export function checkUpstream(): {
   behind: number;
-  commits: any { hash: string; message: string }[];
+  commits: { hash: string; message: string }[];
 } {
   git(["fetch", "origin", "main", "--quiet"]);
   const log = git(["log", "HEAD..origin/main", "--oneline"]);
@@ -59,7 +59,7 @@ export function checkUpstream(): any {
 /**
  * Return per-commit diffs for every commit ahead of HEAD on origin/main.
  */
-export function getUpstreamDiffs(): any {
+export function getUpstreamDiffs(): {
   hash: string;
   message: string;
   author: string;

@@ -567,7 +567,7 @@ function applyMigrations(db: DatabaseType): void {
     .get() as { v: number | null } | undefined;
   const currentVersion = versionRow?.v ?? 0;
 
-  const migrations: any { version: number; apply: () => void }[] = [
+  const migrations: { version: number; apply: () => void }[] = [
     {
       version: 2,
       apply: () => db.exec(MIGRATION_V2),
@@ -675,7 +675,7 @@ export function insertPolicyDecision(db: DatabaseType, row: PolicyDecisionRow): 
 
 export function getPolicyDecisions(
   db: DatabaseType,
-  filters: any {
+  filters: {
     turnId?: string;
     toolName?: string;
     decision?: PolicyAction;
@@ -1678,7 +1678,7 @@ export function inferenceGetHourlyCost(db: DatabaseType): number {
   return row.total;
 }
 
-export function inferenceGetModelCosts(db: DatabaseType, model: string, days?: number): any { totalCents: number; callCount: number } {
+export function inferenceGetModelCosts(db: DatabaseType, model: string, days?: number): { totalCents: number; callCount: number } {
   const since = days
     ? new Date(Date.now() - days * 86400000).toISOString().replace("T", " ").replace("Z", "")
     : "1970-01-01 00:00:00";
@@ -1943,7 +1943,7 @@ export function onchainTxGetByHash(db: DatabaseType, txHash: string): OnchainTra
   return row ? deserializeOnchainTxRow(row) : undefined;
 }
 
-export function onchainTxGetAll(db: DatabaseType, filter?: any { status?: string }): OnchainTransactionRow[] {
+export function onchainTxGetAll(db: DatabaseType, filter?: { status?: string }): OnchainTransactionRow[] {
   if (filter?.status) {
     const rows = db
       .prepare("SELECT * FROM onchain_transactions WHERE status = ? ORDER BY created_at DESC")

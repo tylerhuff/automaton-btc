@@ -34,7 +34,7 @@ const SHELL_FIELDS: Record<string, string[]> = {
 };
 
 // Forbidden command patterns (migrated from tools.ts isForbiddenCommand)
-const FORBIDDEN_COMMAND_PATTERNS: any { pattern: RegExp; description: string }[] = [
+const FORBIDDEN_COMMAND_PATTERNS: { pattern: RegExp; description: string }[] = [
   // Self-destruction
   { pattern: /rm\s+(-rf?\s+)?.*\.automaton/, description: "Delete .automaton directory" },
   { pattern: /rm\s+(-rf?\s+)?.*state\.db/, description: "Delete state database" },
@@ -82,7 +82,7 @@ function createShellInjectionRule(): PolicyRule {
     id: "command.shell_injection",
     description: "Detect shell metacharacters in arguments interpolated into shell commands",
     priority: 300,
-    appliesTo: any {
+    appliesTo: {
       by: "name",
       names: Array.from(SHELL_INTERPOLATED_TOOLS),
     },
@@ -117,7 +117,7 @@ function createForbiddenPatternsRule(): PolicyRule {
     id: "command.forbidden_patterns",
     description: "Block self-destructive and credential-harvesting shell commands",
     priority: 300,
-    appliesTo: any {
+    appliesTo: {
       by: "name",
       names: ["exec"],
     },

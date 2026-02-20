@@ -35,12 +35,12 @@ const logger = createLogger("registry.erc8004");
 // ─── Contract Addresses ──────────────────────────────────────
 
 const CONTRACTS = {
-  mainnet: any {
+  mainnet: {
     identity: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432" as Address,
     reputation: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63" as Address,
     chain: base,
   },
-  testnet: any {
+  testnet: {
     identity: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432" as Address,
     reputation: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63" as Address,
     chain: baseSepolia,
@@ -79,7 +79,7 @@ type Network = "mainnet" | "testnet";
 async function preflight(
   account: PrivateKeyAccount,
   network: Network,
-  functionData: any { address: Address; abi: any; functionName: string; args: any[] },
+  functionData: { address: Address; abi: any; functionName: string; args: any[] },
 ): Promise<void> {
   const contracts = CONTRACTS[network];
   const chain = contracts.chain;

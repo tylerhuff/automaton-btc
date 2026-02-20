@@ -9,27 +9,7 @@
 import fs from "fs";
 import path from "path";
 import { createLogger } from "../../observability/logger.js";
-// Simple HTTP client replacement
-class SimpleHttpClient {
-  constructor(options?: any) {}
-  
-  async request(url: string, options: any) {
-    const response = await fetch(url, {
-      method: options.method || 'GET',
-      headers: options.headers || {},
-      body: options.body,
-      signal: AbortSignal.timeout(options.timeout || 15000)
-    });
-    
-    return {
-      ok: response.ok,
-      status: response.status,
-      headers: response.headers,
-      json: () => response.json(),
-      text: () => response.text()
-    };
-  }
-}
+import { ResilientHttpClient } from "../../conway/http-client.js";
 
 const logger = createLogger("l402-discovery");
 
@@ -63,7 +43,7 @@ export interface L402ServiceScore {
 }
 
 export class L402Discovery {
-  private httpClient: SimpleHttpClient;
+  private httpClient: ResilientHttpClient;
   private cacheFile: string;
   private readonly SATRING_API = "https://satring.com/api/v1/services";
   private readonly CACHE_TTL_MS = 1000 * 60 * 60 * 4; // 4 hours
@@ -74,7 +54,10 @@ export class L402Discovery {
   ];
 
   constructor(cacheDir?: string) {
-    this.httpClient = new SimpleHttpClient();
+    this.httpClient = new ResilientHttpClient({
+      baseTimeout: 15000,
+      retryableStatuses: [429, 500, 502, 503, 504],
+    });
     
     const automatonDir = path.join(process.env.HOME || "/root", ".automaton");
     if (!fs.existsSync(automatonDir)) {
@@ -102,7 +85,7 @@ export class L402Discovery {
     try {
       const response = await this.httpClient.request(this.SATRING_API, {
         method: "GET",
-        headers: any { "Accept": "application/json" },
+        headers: { "Accept": "application/json" },
         timeout: 15000,
       });
 
@@ -296,7 +279,7 @@ export class L402Discovery {
    * Calculate a score for provider selection
    * Lower price = higher score, but also consider reliability and features
    */
-  private calculateProviderScore(service: DiscoveredL402Service): any { score: number; reasons: string[] } {
+  private calculateProviderScore(service: DiscoveredL402Service): { score: number; reasons: string[] } {
     let score = 100; // Base score
     const reasons: string[] = [];
 
@@ -420,7 +403,7 @@ export class L402Discovery {
   /**
    * Get cache statistics
    */
-  getCacheInfo(): any { services: number; lastUpdated: string | null; isValid: boolean } {
+  getCacheInfo(): { services: number; lastUpdated: string | null; isValid: boolean } {
     const cache = this.loadCache();
     return {
       services: cache?.services.length || 0,

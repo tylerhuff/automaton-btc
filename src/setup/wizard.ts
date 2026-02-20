@@ -5,6 +5,7 @@ import type { AutomatonConfig, TreasuryPolicy } from "../types.js";
 import { DEFAULT_TREASURY_POLICY } from "../types.js";
 import type { Address } from "viem";
 import { getWallet, getAutomatonDir } from "../identity/wallet.js";
+import { provision } from "../identity/provision.js";
 import { createConfig, saveConfig } from "../config.js";
 import { writeDefaultHeartbeatConfig } from "../heartbeat/config.js";
 import { showBanner } from "./banner.js";
@@ -34,10 +35,36 @@ export async function runSetupWizard(): Promise<AutomatonConfig> {
   }
   console.log(chalk.dim(`  Private key stored at: ${getAutomatonDir()}/wallet.json\n`));
 
-  // ─── 2. Bitcoin-native setup ─────────────────────────────────────
-  console.log(chalk.cyan("  [2/6] Lightning wallet ready for L402 payments..."));
-  console.log(chalk.green("  ✅ Bitcoin-native: No API keys needed, pays with Lightning sats"));
-  console.log(chalk.dim("  Every inference costs ~210 sats via L402 to Sats4AI\n"));
+  // ─── 2. Provision API key ─────────────────────────────────────
+  console.log(chalk.cyan("  [2/6] Provisioning Conway API key (SIWE)..."));
+  let apiKey = "";
+  try {
+    const result = await provision();
+    apiKey = result.apiKey;
+    console.log(chalk.green(`  API key provisioned: ${result.keyPrefix}...\n`));
+  } catch (err: any) {
+    console.log(chalk.yellow(`  Auto-provision failed: ${err.message}`));
+    console.log(chalk.yellow("  You can enter a key manually, or press Enter to skip.\n"));
+    const manual = await promptOptional("Conway API key (cnwy_k_..., optional)");
+    if (manual) {
+      apiKey = manual;
+      // Save to config.json for loadApiKeyFromConfig()
+      const configDir = getAutomatonDir();
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
+      }
+      fs.writeFileSync(
+        path.join(configDir, "config.json"),
+        JSON.stringify({ apiKey, walletAddress: account.address, provisionedAt: new Date().toISOString() }, null, 2),
+        { mode: 0o600 },
+      );
+      console.log(chalk.green("  API key saved.\n"));
+    }
+  }
+
+  if (!apiKey) {
+    console.log(chalk.yellow("  No API key set. The automaton will have limited functionality.\n"));
+  }
 
   // ─── 3. Interactive questions ─────────────────────────────────
   console.log(chalk.cyan("  [3/6] Setup questions\n"));
@@ -71,7 +98,7 @@ export async function runSetupWizard(): Promise<AutomatonConfig> {
     ].filter(Boolean).join(", ");
     console.log(chalk.green(`  Provider keys saved: ${providers}\n`));
   } else {
-    console.log(chalk.dim("  No provider keys set. Inference will use L402 Lightning payments.\n"));
+    console.log(chalk.dim("  No provider keys set. Inference will default to Conway.\n"));
   }
 
   // ─── Financial Safety Policy ─────────────────────────────────
@@ -103,7 +130,11 @@ export async function runSetupWizard(): Promise<AutomatonConfig> {
   // ─── 4. Detect environment ────────────────────────────────────
   console.log(chalk.cyan("  [4/6] Detecting environment..."));
   const env = detectEnvironment();
-  console.log(chalk.green(`  Bitcoin sovereign agent - environment: ${env.type}\n`));
+  if (env.sandboxId) {
+    console.log(chalk.green(`  Conway sandbox detected: ${env.sandboxId}\n`));
+  } else {
+    console.log(chalk.dim(`  Environment: ${env.type} (no sandbox detected)\n`));
+  }
 
   // ─── 5. Write config + heartbeat + SOUL.md + skills ───────────
   console.log(chalk.cyan("  [5/6] Writing configuration..."));
@@ -112,7 +143,10 @@ export async function runSetupWizard(): Promise<AutomatonConfig> {
     name,
     genesisPrompt,
     creatorAddress: creatorAddress as Address,
+    registeredWithConway: !!apiKey,
+    sandboxId: env.sandboxId,
     walletAddress: account.address,
+    apiKey,
     openaiApiKey: openaiApiKey || undefined,
     anthropicApiKey: anthropicApiKey || undefined,
     treasuryPolicy,
@@ -142,7 +176,7 @@ export async function runSetupWizard(): Promise<AutomatonConfig> {
   // Default skills
   const skillsDir = config.skillsDir || "~/.automaton/skills";
   installDefaultSkills(skillsDir);
-  console.log(chalk.green("  Default skills installed (bitcoin-payments, survival)\n"));
+  console.log(chalk.green("  Default skills installed (conway-compute, conway-payments, survival)\n"));
 
   // ─── 6. Funding guidance ──────────────────────────────────────
   console.log(chalk.cyan("  [6/6] Funding\n"));
@@ -163,13 +197,13 @@ function showFundingPanel(address: string): void {
   console.log(chalk.cyan(`  │${" ".repeat(w)}│`));
   console.log(chalk.cyan(`  │${pad(`  Address: ${short}`, w)}│`));
   console.log(chalk.cyan(`  │${" ".repeat(w)}│`));
-  console.log(chalk.cyan(`  │${pad("  1. Fund Lightning wallet", w)}│`));
-  console.log(chalk.cyan(`  │${pad("     Send sats to Lightning address", w)}│`));
+  console.log(chalk.cyan(`  │${pad("  1. Transfer Conway credits", w)}│`));
+  console.log(chalk.cyan(`  │${pad("     conway credits transfer <address> <amount>", w)}│`));
   console.log(chalk.cyan(`  │${" ".repeat(w)}│`));
   console.log(chalk.cyan(`  │${pad("  2. Send USDC on Base directly to the address above", w)}│`));
   console.log(chalk.cyan(`  │${" ".repeat(w)}│`));
-  console.log(chalk.cyan(`  │${pad("  3. Use any Lightning wallet", w)}│`));
-  console.log(chalk.cyan(`  │${pad("     Pay L402 invoices automatically", w)}│`));
+  console.log(chalk.cyan(`  │${pad("  3. Fund via Conway Cloud dashboard", w)}│`));
+  console.log(chalk.cyan(`  │${pad("     https://app.conway.tech", w)}│`));
   console.log(chalk.cyan(`  │${" ".repeat(w)}│`));
   console.log(chalk.cyan(`  │${pad("  The automaton will start now. Fund it anytime —", w)}│`));
   console.log(chalk.cyan(`  │${pad("  the survival system handles zero-credit gracefully.", w)}│`));

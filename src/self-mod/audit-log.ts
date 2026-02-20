@@ -19,7 +19,7 @@ export function logModification(
   db: AutomatonDatabase,
   type: ModificationType,
   description: string,
-  options?: any {
+  options?: {
     filePath?: string;
     diff?: string;
     reversible?: boolean;

@@ -3,37 +3,20 @@
  *
  * Continuously monitors the automaton's resources and triggers
  * survival mode transitions when needed.
- * Updated for Bitcoin sovereign agent using Lightning wallet.
  */
 
 import type {
   AutomatonConfig,
   AutomatonDatabase,
+  ConwayClient,
   AutomatonIdentity,
   FinancialState,
   SurvivalTier,
 } from "../types.js";
-import { SURVIVAL_THRESHOLDS } from "../types.js";
+import { getSurvivalTier, formatCredits } from "../conway/credits.js";
 // Lightning-based financial monitoring
 import { loadLightningAccount, getLightningBalance } from "../identity/lightning-wallet.js";
-
-// Local implementation of removed Conway functions
-function getSurvivalTier(creditsCents: number): SurvivalTier {
-  if (creditsCents < SURVIVAL_THRESHOLDS.dead) return "dead";
-  if (creditsCents < SURVIVAL_THRESHOLDS.critical) return "critical"; 
-  if (creditsCents < SURVIVAL_THRESHOLDS.low_compute) return "low_compute";
-  if (creditsCents < SURVIVAL_THRESHOLDS.normal) return "normal";
-  return "high";
-}
-
-function formatCredits(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
-function satsToUsd(sats: number): number {
-  // Rough conversion - Bitcoin sovereign agents can implement more accurate rates
-  return sats * 0.0005; // Assume 1 sat ≈ $0.0005
-}
+import { satsToUsd } from "../conway/lightning-payment.js";
 
 export interface ResourceStatus {
   financial: FinancialState;
@@ -44,56 +27,69 @@ export interface ResourceStatus {
 }
 
 /**
- * Check resource status and survival tier
+ * Check all resources and return current status.
  */
-export async function checkResourceStatus(
+export async function checkResources(
   identity: AutomatonIdentity,
-  config: AutomatonConfig,
+  conway: ConwayClient,
   db: AutomatonDatabase,
 ): Promise<ResourceStatus> {
+  // Check Lightning balance (primary financial metric)
   let creditsCents = 0;
-  let sandboxHealthy = true;
+  let lightningBalanceSats = 0;
+  let usdcBalance = 0; // Deprecated, kept for backwards compatibility
 
   try {
-    // Try to get Lightning balance
-    const lightningAccount = await loadLightningAccount();
-    const lightningBalanceSats = await getLightningBalance(lightningAccount);
-    
-    // Convert Lightning sats to USD equivalent for survival logic
-    creditsCents = Math.floor(satsToUsd(lightningBalanceSats) * 100);
-  } catch (error) {
-    // If Lightning balance check fails, assume healthy but low balance
-    creditsCents = 100; // $1.00 equivalent to keep agent alive
+    const lightningAccount = loadLightningAccount();
+    if (lightningAccount) {
+      lightningBalanceSats = await getLightningBalance(lightningAccount);
+      // Convert Lightning balance to approximate USD credits for survival logic
+      const usdBalance = await satsToUsd(lightningBalanceSats);
+      creditsCents = Math.round(usdBalance * 100);
+    }
+  } catch {
+    // If Lightning balance check fails, fall back to Conway credits as a last resort
+    try {
+      creditsCents = conway ? await conway.getCreditsBalance() : 0;
+    } catch {}
   }
 
-  // Local health check - no Conway sandbox needed
+  // USDC is no longer primary, but we keep the field populated if available
   try {
-    // Basic health check - verify database access
-    const testKey = `health_check_${Date.now()}`;
-    db.setKV(testKey, "ok");
-    const testResult = db.getKV(testKey);
-    db.deleteKV(testKey);
-    sandboxHealthy = testResult === "ok";
-  } catch (error) {
+    // In Lightning-native mode this will usually be zero
+    usdcBalance = 0;
+  } catch {}
+
+  // Check sandbox health
+  let sandboxHealthy = true;
+  try {
+    if (conway) {
+      const result = await conway.exec("echo ok", 5000);
+      sandboxHealthy = result.exitCode === 0;
+    } else {
+      sandboxHealthy = false; // No Conway client means we can't check sandbox health
+    }
+  } catch {
     sandboxHealthy = false;
   }
 
-  const tier = getSurvivalTier(creditsCents);
-  const previousTierStr = db.getKV("last_survival_tier");
-  const previousTier = previousTierStr as SurvivalTier | null;
-  const tierChanged = previousTier !== tier;
-
   const financial: FinancialState = {
     creditsCents,
-    usdcBalance: 0, // Not used in Lightning-based system
-    lightningBalanceSats: creditsCents / 0.05, // Rough conversion back to sats
+    usdcBalance,
+    lightningBalanceSats,
     lastChecked: new Date().toISOString(),
   };
 
-  // Store current tier for next check
-  if (tierChanged) {
-    db.setKV("last_survival_tier", tier);
-  }
+  const tier = getSurvivalTier(creditsCents);
+  const prevTierStr = db.getKV("current_tier");
+  const previousTier = (prevTierStr as SurvivalTier) || null;
+  const tierChanged = previousTier !== null && previousTier !== tier;
+
+  // Store current tier
+  db.setKV("current_tier", tier);
+
+  // Store financial state
+  db.setKV("financial_state", JSON.stringify(financial));
 
   return {
     financial,
@@ -105,23 +101,18 @@ export async function checkResourceStatus(
 }
 
 /**
- * Log survival status change
+ * Generate a human-readable resource report.
  */
-export function logSurvivalChange(
-  status: ResourceStatus,
-  db: AutomatonDatabase,
-) {
-  const { tier, previousTier, financial } = status;
-  
-  if (previousTier && tier !== previousTier) {
-    console.log(`🚨 Survival tier: ${previousTier} → ${tier} (${formatCredits(financial.creditsCents)})`);
-    
-    db.insertTransaction({
-      id: `tier-change-${Date.now()}`,
-      type: "credit_check",
-      balanceAfterCents: financial.creditsCents,
-      description: `Survival tier changed: ${previousTier} → ${tier}`,
-      timestamp: new Date().toISOString(),
-    });
-  }
+export function formatResourceReport(status: ResourceStatus): string {
+  const lines = [
+    `=== RESOURCE STATUS ===`,
+    `Credits (approx): ${formatCredits(status.financial.creditsCents)} (from Lightning balance)`,
+    `Lightning: ${(status.financial.lightningBalanceSats ?? 0)} sats`,
+    `USDC (legacy): ${status.financial.usdcBalance.toFixed(6)}`,
+    `Tier: ${status.tier}${status.tierChanged ? ` (changed from ${status.previousTier})` : ""}`,
+    `Sandbox: ${status.sandboxHealthy ? "healthy" : "UNHEALTHY"}`,
+    `Checked: ${status.financial.lastChecked}`,
+    `========================`,
+  ];
+  return lines.join("\n");
 }

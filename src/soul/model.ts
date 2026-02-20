@@ -178,7 +178,7 @@ function parseSections(body: string): Record<string, string> {
   const sections: Record<string, string> = {};
   const sectionPattern = /^##\s+(.+)$/gm;
   let match: RegExpExecArray | null;
-  const sectionHeaders: any { name: string; start: number }[] = [];
+  const sectionHeaders: { name: string; start: number }[] = [];
 
   while ((match = sectionPattern.exec(body)) !== null) {
     sectionHeaders.push({

@@ -189,7 +189,7 @@ export async function getLightningBalance(account: LightningAccount): Promise<nu
 
 /**
  * Create a Lightning invoice via Coinos.
- * Coinos route: POST /invoice  body: any { invoice: any { amount, memo, ... }, user? }
+ * Coinos route: POST /invoice  body: { invoice: { amount, memo, ... }, user? }
  */
 export async function createLightningInvoice(
   account: LightningAccount,
@@ -205,7 +205,7 @@ export async function createLightningInvoice(
   }
 
   const result = await coinosRequest(account.coinosToken, "POST", "/invoice", {
-    invoice: any {
+    invoice: {
       amount: amountSats,
       memo: description,
       type: "lightning",
@@ -228,7 +228,7 @@ export async function createLightningInvoice(
 
 /**
  * Pay a BOLT-11 Lightning invoice via Coinos.
- * Coinos route: POST /payments  body: any { payreq }
+ * Coinos route: POST /payments  body: { payreq }
  */
 export async function payLightningInvoice(
   account: LightningAccount,

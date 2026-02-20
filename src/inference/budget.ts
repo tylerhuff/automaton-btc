@@ -34,7 +34,7 @@ export class InferenceBudgetTracker {
   checkBudget(
     estimatedCostCents: number,
     model: string,
-  ): any { allowed: boolean; reason?: string } {
+  ): { allowed: boolean; reason?: string } {
     // Per-call ceiling check
     if (this.config.perCallCeilingCents > 0 && estimatedCostCents > this.config.perCallCeilingCents) {
       return {
@@ -95,7 +95,7 @@ export class InferenceBudgetTracker {
   /**
    * Get cost breakdown for a specific model.
    */
-  getModelCosts(model: string, days?: number): any { totalCents: number; callCount: number } {
+  getModelCosts(model: string, days?: number): { totalCents: number; callCount: number } {
     return inferenceGetModelCosts(this.db, model, days);
   }
 }

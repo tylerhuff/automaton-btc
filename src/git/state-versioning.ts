@@ -1,88 +1,144 @@
 /**
- * State Versioning via Git - Bitcoin-Native Stub
+ * State Versioning
  *
- * Conway git operations have been disabled for Bitcoin-native version.
- * This provides stub implementations to prevent build errors.
+ * Version control the automaton's own state files (~/.automaton/).
+ * Every self-modification triggers a git commit with a descriptive message.
+ * The automaton's entire identity history is version-controlled and replayable.
  */
 
-import type { AutomatonDatabase } from "../types.js";
-import { createLogger } from "../observability/logger.js";
+import type { ConwayClient, AutomatonDatabase } from "../types.js";
+import { gitInit, gitCommit, gitStatus, gitLog } from "./tools.js";
 
-const logger = createLogger("state-versioning");
+const AUTOMATON_DIR = "~/.automaton";
 
-/**
- * Initialize a git repository in ~/.automaton/state for state versioning
- * STUB: Bitcoin-native version doesn't use Conway git operations
- */
-export async function initStateRepo(): Promise<void> {
-  logger.info("Git state versioning disabled in Bitcoin-native mode");
-  // No-op - Bitcoin-native automatons don't require Conway sandboxes for git
+function resolveHome(p: string): string {
+  const home = process.env.HOME || "/root";
+  if (p.startsWith("~")) {
+    return `${home}${p.slice(1)}`;
+  }
+  return p;
 }
 
 /**
- * Commit a state change with a descriptive message
- * STUB: Disabled for Bitcoin-native version
+ * Initialize git repo for the automaton's state directory.
+ * Creates .gitignore to exclude sensitive files.
+ */
+export async function initStateRepo(
+  conway: ConwayClient,
+): Promise<void> {
+  const dir = resolveHome(AUTOMATON_DIR);
+
+  // Check if already initialized
+  const checkResult = await conway.exec(
+    `test -d ${dir}/.git && echo "exists" || echo "nope"`,
+    5000,
+  );
+
+  if (checkResult.stdout.trim() === "exists") {
+    return;
+  }
+
+  // Initialize
+  await gitInit(conway, dir);
+
+  // Create .gitignore for sensitive files
+  const gitignore = `# Sensitive files - never commit
+wallet.json
+config.json
+state.db
+state.db-wal
+state.db-shm
+logs/
+*.log
+*.err
+`;
+
+  await conway.writeFile(`${dir}/.gitignore`, gitignore);
+
+  // Configure git user
+  await conway.exec(
+    `cd ${dir} && git config user.name "Automaton" && git config user.email "automaton@conway.tech"`,
+    5000,
+  );
+
+  // Initial commit
+  await gitCommit(conway, dir, "genesis: automaton state repository initialized");
+}
+
+/**
+ * Commit a state change with a descriptive message.
+ * Called after any self-modification.
  */
 export async function commitStateChange(
+  conway: ConwayClient,
   description: string,
-  category: "soul" | "heartbeat" | "config" | "general" = "general",
-): Promise<{ success: boolean; commitHash?: string }> {
-  logger.debug(`State change logged: [${category}] ${description}`);
-  return { success: true, commitHash: "stub-commit" };
+  category: string = "state",
+): Promise<string> {
+  const dir = resolveHome(AUTOMATON_DIR);
+
+  // Check if there are changes
+  const status = await gitStatus(conway, dir);
+  if (status.clean) {
+    return "No changes to commit";
+  }
+
+  const message = `${category}: ${description}`;
+  const result = await gitCommit(conway, dir, message);
+  return result;
 }
 
 /**
- * Get current git status of state repo
- * STUB: Disabled for Bitcoin-native version
+ * Commit after a SOUL.md update.
  */
-export async function getStateRepoStatus(): Promise<{
-  clean: boolean;
-  staged: number;
-  unstaged: number;
-  untracked: number;
-}> {
-  return { clean: true, staged: 0, unstaged: 0, untracked: 0 };
-}
-
-/**
- * Commit soul file changes
- * STUB: Disabled for Bitcoin-native version
- */
-export async function commitSoulChange(
+export async function commitSoulUpdate(
+  conway: ConwayClient,
   description: string,
-): Promise<{ success: boolean; commitHash?: string }> {
-  return commitStateChange(description, "soul");
+): Promise<string> {
+  return commitStateChange(conway, description, "soul");
 }
 
 /**
- * Commit heartbeat config changes
- * STUB: Disabled for Bitcoin-native version
+ * Commit after a skill installation or removal.
+ */
+export async function commitSkillChange(
+  conway: ConwayClient,
+  skillName: string,
+  action: "install" | "remove" | "update",
+): Promise<string> {
+  return commitStateChange(
+    conway,
+    `${action} skill: ${skillName}`,
+    "skill",
+  );
+}
+
+/**
+ * Commit after heartbeat config change.
  */
 export async function commitHeartbeatChange(
+  conway: ConwayClient,
   description: string,
-): Promise<{ success: boolean; commitHash?: string }> {
-  return commitStateChange(description, "heartbeat");
+): Promise<string> {
+  return commitStateChange(conway, description, "heartbeat");
 }
 
 /**
- * Commit general config changes
- * STUB: Disabled for Bitcoin-native version
+ * Commit after config change.
  */
 export async function commitConfigChange(
+  conway: ConwayClient,
   description: string,
-): Promise<{ success: boolean; commitHash?: string }> {
-  return commitStateChange(description, "config");
+): Promise<string> {
+  return commitStateChange(conway, description, "config");
 }
 
 /**
- * Get git log of state changes
- * STUB: Disabled for Bitcoin-native version
+ * Get the state repo history.
  */
-export async function getStateRepoLog(limit = 20): Promise<Array<{
-  hash: string;
-  message: string;
-  timestamp: string;
-  author: string;
-}>> {
-  return [];
+export async function getStateHistory(
+  conway: ConwayClient,
+  limit: number = 20,
+) {
+  const dir = resolveHome(AUTOMATON_DIR);
+  return gitLog(conway, dir, limit);
 }

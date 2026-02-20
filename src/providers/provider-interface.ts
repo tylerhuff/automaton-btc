@@ -20,13 +20,13 @@ export interface ComputeResource {
   name: string;
   type: "vps" | "container" | "function" | "lightning-node";
   status: "running" | "stopped" | "pending" | "error";
-  specs: any {
+  specs: {
     vcpu: number;
     memoryMb: number;
     diskGb: number;
     region?: string;
   };
-  endpoints: any {
+  endpoints: {
     ssh?: string;
     http?: string;
     api?: string;
@@ -106,7 +106,7 @@ export interface InfrastructureProvider {
 export interface CreateResourceConfig {
   name: string;
   type: "vps" | "container" | "function" | "lightning-node";
-  specs: any {
+  specs: {
     vcpu: number;
     memoryMb: number;
     diskGb: number;

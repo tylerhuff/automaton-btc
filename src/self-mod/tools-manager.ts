@@ -5,7 +5,7 @@
  */
 
 import type {
-  ,
+  ConwayClient,
   AutomatonDatabase,
   InstalledTool,
 } from "../types.js";
@@ -16,7 +16,7 @@ import { ulid } from "ulid";
  * Install an npm package globally in the sandbox.
  */
 export async function installNpmPackage(
-  conway: any,
+  conway: ConwayClient,
   db: AutomatonDatabase,
   packageName: string,
 ): Promise<{ success: boolean; error?: string }> {
@@ -45,7 +45,7 @@ export async function installNpmPackage(
     id: ulid(),
     name: packageName,
     type: "custom",
-    config: any { source: "npm", installCommand: `npm install -g ${packageName}` },
+    config: { source: "npm", installCommand: `npm install -g ${packageName}` },
     installedAt: new Date().toISOString(),
     enabled: true,
   };
@@ -64,7 +64,7 @@ export async function installNpmPackage(
  * The automaton can add new capabilities by installing MCP servers.
  */
 export async function installMcpServer(
-  conway: any,
+  conway: ConwayClient,
   db: AutomatonDatabase,
   name: string,
   command: string,
@@ -76,7 +76,7 @@ export async function installMcpServer(
     id: ulid(),
     name: `mcp:${name}`,
     type: "mcp",
-    config: any { command, args, env },
+    config: { command, args, env },
     installedAt: new Date().toISOString(),
     enabled: true,
   };

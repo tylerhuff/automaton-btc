@@ -13,6 +13,7 @@ import type {
   AutomatonDatabase,
   ChildAutomaton,
   AutomatonConfig,
+  ConwayClient,
 } from "../types.js";
 import type { ChildLifecycle } from "./lifecycle.js";
 import type { ChildHealthMonitor } from "./health.js";
@@ -24,7 +25,7 @@ const logger = createLogger("replication.lineage");
 /**
  * Get the full lineage tree (parent -> children).
  */
-export function getLineage(db: AutomatonDatabase): any {
+export function getLineage(db: AutomatonDatabase): {
   children: ChildAutomaton[];
   alive: number;
   dead: number;
@@ -132,7 +133,7 @@ export async function pruneDeadChildren(
  * Concurrency limited to 3 simultaneous checks.
  */
 export async function refreshChildrenStatus(
-  conway: any,
+  conway: ConwayClient,
   db: AutomatonDatabase,
   healthMonitor?: ChildHealthMonitor,
 ): Promise<void> {

@@ -10,6 +10,7 @@ import type { AutomatonConfig, TreasuryPolicy, ModelStrategyConfig, SoulConfig }
 import type { Address } from "viem";
 import { DEFAULT_CONFIG, DEFAULT_TREASURY_POLICY, DEFAULT_MODEL_STRATEGY_CONFIG, DEFAULT_SOUL_CONFIG } from "./types.js";
 import { getAutomatonDir } from "./identity/wallet.js";
+import { loadApiKeyFromConfig } from "./identity/provision.js";
 import { createLogger } from "./observability/logger.js";
 
 const logger = createLogger("config");
@@ -31,6 +32,7 @@ export function loadConfig(): AutomatonConfig | null {
 
   try {
     const raw = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    const apiKey = raw.conwayApiKey || loadApiKeyFromConfig();
 
     // Deep-merge treasury policy with defaults
     const treasuryPolicy: TreasuryPolicy = {
@@ -53,14 +55,14 @@ export function loadConfig(): AutomatonConfig | null {
       ...DEFAULT_MODEL_STRATEGY_CONFIG,
       ...(raw.modelStrategy ?? {}),
       // Root-level fields override modelStrategy fields (user convenience)
-      ...(raw.inferenceProvider ? { inferenceProvider: raw.inferenceProvider } : any {}),
-      ...(raw.inferenceApiKey ? { inferenceApiKey: raw.inferenceApiKey } : any {}),
-      ...(raw.inferenceBaseUrl ? { inferenceBaseUrl: raw.inferenceBaseUrl } : any {}),
-      ...(raw.inferenceModel ? { inferenceModel: raw.inferenceModel } : any {}),
-      ...(raw.groqApiKey ? { groqApiKey: raw.groqApiKey } : any {}),
-      ...(raw.openaiApiKey ? { openaiApiKey: raw.openaiApiKey } : any {}),
-      ...(raw.anthropicApiKey ? { anthropicApiKey: raw.anthropicApiKey } : any {}),
-      ...(raw.fallbackProviders ? { fallbackProviders: raw.fallbackProviders } : any {}),
+      ...(raw.inferenceProvider ? { inferenceProvider: raw.inferenceProvider } : {}),
+      ...(raw.inferenceApiKey ? { inferenceApiKey: raw.inferenceApiKey } : {}),
+      ...(raw.inferenceBaseUrl ? { inferenceBaseUrl: raw.inferenceBaseUrl } : {}),
+      ...(raw.inferenceModel ? { inferenceModel: raw.inferenceModel } : {}),
+      ...(raw.groqApiKey ? { groqApiKey: raw.groqApiKey } : {}),
+      ...(raw.openaiApiKey ? { openaiApiKey: raw.openaiApiKey } : {}),
+      ...(raw.anthropicApiKey ? { anthropicApiKey: raw.anthropicApiKey } : {}),
+      ...(raw.fallbackProviders ? { fallbackProviders: raw.fallbackProviders } : {}),
     };
 
     // Deep-merge soul config with defaults
@@ -72,6 +74,7 @@ export function loadConfig(): AutomatonConfig | null {
     return {
       ...DEFAULT_CONFIG,
       ...raw,
+      conwayApiKey: apiKey,
       treasuryPolicy,
       modelStrategy,
       soulConfig,
@@ -116,12 +119,15 @@ export function resolvePath(p: string): string {
 /**
  * Create a fresh config from setup wizard inputs.
  */
-export function createConfig(params: any {
+export function createConfig(params: {
   name: string;
   genesisPrompt: string;
   creatorMessage?: string;
   creatorAddress: Address;
+  registeredWithConway: boolean;
+  sandboxId: string;
   walletAddress: Address;
+  apiKey: string;
   openaiApiKey?: string;
   anthropicApiKey?: string;
   parentAddress?: Address;
@@ -132,6 +138,11 @@ export function createConfig(params: any {
     genesisPrompt: params.genesisPrompt,
     creatorMessage: params.creatorMessage,
     creatorAddress: params.creatorAddress,
+    registeredWithConway: params.registeredWithConway,
+    sandboxId: params.sandboxId,
+    conwayApiUrl:
+      DEFAULT_CONFIG.conwayApiUrl || "https://api.conway.tech",
+    conwayApiKey: params.apiKey,
     openaiApiKey: params.openaiApiKey,
     anthropicApiKey: params.anthropicApiKey,
     inferenceModel: DEFAULT_CONFIG.inferenceModel || "gpt-5.2",

@@ -14,10 +14,7 @@ import type {
   PaymentResult,
 } from "./provider-interface.js";
 import type { LightningAccount } from "../types.js";
-// Local USD to sats conversion (assuming $100k BTC)
-function usdToSats(usdAmount: number): number {
-  return Math.round(usdAmount * 100000); // 1 USD = 100,000 sats at $100k BTC
-}
+import { usdToSats } from "../conway/lightning-payment.js";
 import { createLogger } from "../observability/logger.js";
 import crypto from "crypto";
 
@@ -74,13 +71,13 @@ export class LunaNodeProvider implements InfrastructureProvider {
         name: vm.name || `lunanode-vm-${vm.vmid}`,
         type: "vps" as const,
         status: this.mapLunaNodeStatus(vm.status),
-        specs: any {
+        specs: {
           vcpu: vm.plan_vcpu || 1,
           memoryMb: vm.plan_ram || 512,
           diskGb: vm.plan_storage || 20,
           region: vm.region || "toronto",
         },
-        endpoints: any {
+        endpoints: {
           ssh: vm.primary_ip ? `${vm.primary_ip}:22` : undefined,
           http: vm.primary_ip ? `http://${vm.primary_ip}` : undefined,
         },
@@ -130,7 +127,7 @@ export class LunaNodeProvider implements InfrastructureProvider {
         type: "vps",
         status: "pending",
         specs: config.specs,
-        endpoints: any {
+        endpoints: {
           ssh: vm?.primary_ip ? `${vm.primary_ip}:22` : undefined,
         },
         costPerHour: 0,
@@ -180,13 +177,13 @@ export class LunaNodeProvider implements InfrastructureProvider {
         name: vm.name,
         type: "vps",
         status: this.mapLunaNodeStatus(vm.status),
-        specs: any {
+        specs: {
           vcpu: vm.plan_vcpu,
           memoryMb: vm.plan_ram,
           diskGb: vm.plan_storage,
           region: vm.region,
         },
-        endpoints: any {
+        endpoints: {
           ssh: vm.primary_ip ? `${vm.primary_ip}:22` : undefined,
           http: vm.primary_ip ? `http://${vm.primary_ip}` : undefined,
         },
@@ -299,7 +296,7 @@ export class LunaNodeProvider implements InfrastructureProvider {
 
     const response = await fetch(this.apiUrl, {
       method: "POST",
-      headers: any {
+      headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams(requestData).toString(),

@@ -1,7 +1,7 @@
 /**
- * Bitcoin-Native Automaton - Type Definitions
+ * Conway Automaton - Type Definitions
  *
- * All shared interfaces for the Lightning-powered autonomous AI agent.
+ * All shared interfaces for the sovereign AI agent runtime.
  */
 
 import type { PrivateKeyAccount, Address } from "viem";
@@ -13,6 +13,8 @@ export interface AutomatonIdentity {
   address: Address;
   account: PrivateKeyAccount;
   creatorAddress: Address;
+  sandboxId: string;
+  apiKey: string;
   createdAt: string;
 }
 
@@ -65,6 +67,10 @@ export interface AutomatonConfig {
   genesisPrompt: string;
   creatorMessage?: string;
   creatorAddress: Address;
+  registeredWithConway: boolean;
+  sandboxId: string;
+  conwayApiUrl: string;
+  conwayApiKey: string;
   openaiApiKey?: string;
   anthropicApiKey?: string;
   groqApiKey?: string;
@@ -90,6 +96,7 @@ export interface AutomatonConfig {
 }
 
 export const DEFAULT_CONFIG: Partial<AutomatonConfig> = {
+  conwayApiUrl: "https://api.conway.tech",
   inferenceModel: "gpt-5.2",
   maxTokensPerTurn: 4096,
   heartbeatConfigPath: "~/.automaton/heartbeat.yml",
@@ -98,6 +105,7 @@ export const DEFAULT_CONFIG: Partial<AutomatonConfig> = {
   version: "0.1.0",
   skillsDir: "~/.automaton/skills",
   maxChildren: 3,
+  socialRelayUrl: "https://social.conway.tech",
 };
 
 // ─── Agent State ─────────────────────────────────────────────────
@@ -161,6 +169,7 @@ export interface AutomatonTool {
 
 export type ToolCategory =
   | "vm"
+  | "conway"
   | "self_mod"
   | "financial"
   | "survival"
@@ -174,6 +183,7 @@ export interface ToolContext {
   identity: AutomatonIdentity;
   config: AutomatonConfig;
   db: AutomatonDatabase;
+  conway: ConwayClient;
   inference: InferenceClient;
   social?: SocialClientInterface;
 }
@@ -220,6 +230,7 @@ export interface HeartbeatPingPayload {
   usdcBalance: number;
   uptimeSeconds: number;
   version: string;
+  sandboxId: string;
   timestamp: string;
 }
 
@@ -324,7 +335,7 @@ export interface ChatMessage {
 export interface InferenceToolCall {
   id: string;
   type: "function";
-  function: any {
+  function: {
     name: string;
     arguments: string;
   };
@@ -349,14 +360,46 @@ export interface InferenceOptions {
 
 export interface InferenceToolDefinition {
   type: "function";
-  function: any {
+  function: {
     name: string;
     description: string;
     parameters: Record<string, unknown>;
   };
 }
 
-// Conway Client removed - using Lightning wallet balance instead
+// ─── Conway Client ───────────────────────────────────────────────
+
+export interface ConwayClient {
+  exec(command: string, timeout?: number): Promise<ExecResult>;
+  writeFile(path: string, content: string): Promise<void>;
+  readFile(path: string): Promise<string>;
+  exposePort(port: number): Promise<PortInfo>;
+  removePort(port: number): Promise<void>;
+  createSandbox(options: CreateSandboxOptions): Promise<SandboxInfo>;
+  deleteSandbox(sandboxId: string): Promise<void>;
+  listSandboxes(): Promise<SandboxInfo[]>;
+  getCreditsBalance(): Promise<number>;
+  getCreditsPricing(): Promise<PricingTier[]>;
+  transferCredits(
+    toAddress: string,
+    amountCents: number,
+    note?: string,
+  ): Promise<CreditTransferResult>;
+  // Domain operations
+  searchDomains(query: string, tlds?: string): Promise<DomainSearchResult[]>;
+  registerDomain(domain: string, years?: number): Promise<DomainRegistration>;
+  listDnsRecords(domain: string): Promise<DnsRecord[]>;
+  addDnsRecord(
+    domain: string,
+    type: string,
+    host: string,
+    value: string,
+    ttl?: number,
+  ): Promise<DnsRecord>;
+  deleteDnsRecord(domain: string, recordId: string): Promise<void>;
+  // Model discovery
+  listModels(): Promise<ModelInfo[]>;
+}
 
 export interface ExecResult {
   stdout: string;
@@ -367,6 +410,7 @@ export interface ExecResult {
 export interface PortInfo {
   port: number;
   publicUrl: string;
+  sandboxId: string;
 }
 
 export interface CreateSandboxOptions {
@@ -433,7 +477,7 @@ export interface DnsRecord {
 export interface ModelInfo {
   id: string;
   provider: string;
-  pricing: any {
+  pricing: {
     inputPerMillion: number;
     outputPerMillion: number;
   };
@@ -471,7 +515,7 @@ export interface PolicyRequest {
   tool: AutomatonTool;
   args: Record<string, unknown>;
   context: ToolContext;
-  turnContext: any {
+  turnContext: {
     inputSource: InputSource | undefined;
     turnToolCallCount: number;
     sessionSpend: SpendTrackerInterface;
@@ -543,7 +587,7 @@ export const DEFAULT_TREASURY_POLICY: TreasuryPolicy = {
   maxDailyTransferCents: 25000,
   minimumReserveCents: 1000,
   maxX402PaymentCents: 100,
-  x402AllowedDomains: [],
+  x402AllowedDomains: ['conway.tech'],
   transferCooldownMs: 0,
   maxTransfersPerTurn: 2,
   maxInferenceDailyCents: 50000,
@@ -772,6 +816,7 @@ export interface ChildAutomaton {
   id: string;
   name: string;
   address: Address;
+  sandboxId: string;
   genesisPrompt: string;
   creatorMessage?: string;
   fundedAmountCents: number;
@@ -788,7 +833,7 @@ export type ChildStatus =
   | "unknown"
   // Phase 3.1 lifecycle states
   | "requested"
-  | "environment_ready"
+  | "sandbox_created"
   | "runtime_ready"
   | "wallet_verified"
   | "funded"
@@ -849,6 +894,7 @@ export interface HeartbeatLegacyContext {
   identity: AutomatonIdentity;
   config: AutomatonConfig;
   db: AutomatonDatabase;
+  conway: ConwayClient;
   social?: SocialClientInterface;
 }
 
@@ -1218,7 +1264,7 @@ export const DEFAULT_MODEL_STRATEGY_CONFIG: ModelStrategyConfig = {
 
 export type ChildLifecycleState =
   | "requested"
-  | "environment_ready"
+  | "sandbox_created"
   | "runtime_ready"
   | "wallet_verified"
   | "funded"
@@ -1230,8 +1276,8 @@ export type ChildLifecycleState =
   | "cleaned_up";
 
 export const VALID_TRANSITIONS: Record<ChildLifecycleState, ChildLifecycleState[]> = {
-  requested: ["environment_ready", "failed"],
-  environment_ready: ["runtime_ready", "failed"],
+  requested: ["sandbox_created", "failed"],
+  sandbox_created: ["runtime_ready", "failed"],
   runtime_ready: ["wallet_verified", "failed"],
   wallet_verified: ["funded", "failed"],
   funded: ["starting", "failed"],
@@ -1380,7 +1426,7 @@ export interface LogEntry {
   module: string;
   message: string;
   context?: Record<string, unknown>;
-  error?: any { message: string; stack?: string; code?: string };
+  error?: { message: string; stack?: string; code?: string };
 }
 
 export type MetricType = "counter" | "gauge" | "histogram";

@@ -82,40 +82,40 @@ export const STATIC_MODEL_BASELINE: Omit<ModelEntry, "lastSeen" | "createdAt" | 
 // Maps (tier, taskType) -> ModelPreference with candidate models
 
 export const DEFAULT_ROUTING_MATRIX: RoutingMatrix = {
-  high: any {
-    agent_turn: any { candidates: ["claude-3-5-sonnet-20241022", "gpt-4o"], maxTokens: 4096, ceilingCents: -1 },
-    heartbeat_triage: any { candidates: ["gpt-4o"], maxTokens: 1024, ceilingCents: 10 },
-    safety_check: any { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 15 },
-    summarization: any { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 10 },
-    planning: any { candidates: ["claude-3-5-sonnet-20241022", "gpt-4o"], maxTokens: 4096, ceilingCents: -1 },
+  high: {
+    agent_turn: { candidates: ["claude-3-5-sonnet-20241022", "gpt-4o"], maxTokens: 4096, ceilingCents: -1 },
+    heartbeat_triage: { candidates: ["gpt-4o"], maxTokens: 1024, ceilingCents: 10 },
+    safety_check: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 15 },
+    summarization: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 10 },
+    planning: { candidates: ["claude-3-5-sonnet-20241022", "gpt-4o"], maxTokens: 4096, ceilingCents: -1 },
   },
-  normal: any {
-    agent_turn: any { candidates: ["gpt-4o", "claude-3-5-sonnet-20241022"], maxTokens: 4096, ceilingCents: -1 },
-    heartbeat_triage: any { candidates: ["gpt-4o"], maxTokens: 1024, ceilingCents: 5 },
-    safety_check: any { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 10 },
-    summarization: any { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 10 },
-    planning: any { candidates: ["gpt-4o"], maxTokens: 4096, ceilingCents: 15 },
+  normal: {
+    agent_turn: { candidates: ["gpt-4o", "claude-3-5-sonnet-20241022"], maxTokens: 4096, ceilingCents: -1 },
+    heartbeat_triage: { candidates: ["gpt-4o"], maxTokens: 1024, ceilingCents: 5 },
+    safety_check: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 10 },
+    summarization: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 10 },
+    planning: { candidates: ["gpt-4o"], maxTokens: 4096, ceilingCents: 15 },
   },
-  low_compute: any {
-    agent_turn: any { candidates: ["gpt-4o"], maxTokens: 4096, ceilingCents: 10 },
-    heartbeat_triage: any { candidates: ["gpt-4o"], maxTokens: 1024, ceilingCents: 3 },
-    safety_check: any { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 5 },
-    summarization: any { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 5 },
-    planning: any { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 5 },
+  low_compute: {
+    agent_turn: { candidates: ["gpt-4o"], maxTokens: 4096, ceilingCents: 10 },
+    heartbeat_triage: { candidates: ["gpt-4o"], maxTokens: 1024, ceilingCents: 3 },
+    safety_check: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 5 },
+    summarization: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 5 },
+    planning: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 5 },
   },
-  critical: any {
-    agent_turn: any { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
-    heartbeat_triage: any { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking  
-    safety_check: any { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
-    summarization: any { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
-    planning: any { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
+  critical: {
+    agent_turn: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
+    heartbeat_triage: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking  
+    safety_check: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
+    summarization: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
+    planning: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // No sats = no thinking
   },
-  dead: any {
-    agent_turn: any { candidates: [], maxTokens: 0, ceilingCents: 0 }, // Can't think when dead
-    heartbeat_triage: any { candidates: [], maxTokens: 0, ceilingCents: 0 },
-    safety_check: any { candidates: [], maxTokens: 0, ceilingCents: 0 },
-    summarization: any { candidates: [], maxTokens: 0, ceilingCents: 0 },
-    planning: any { candidates: [], maxTokens: 0, ceilingCents: 0 },
+  dead: {
+    agent_turn: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // Can't think when dead
+    heartbeat_triage: { candidates: [], maxTokens: 0, ceilingCents: 0 },
+    safety_check: { candidates: [], maxTokens: 0, ceilingCents: 0 },
+    summarization: { candidates: [], maxTokens: 0, ceilingCents: 0 },
+    planning: { candidates: [], maxTokens: 0, ceilingCents: 0 },
   },
 };
 

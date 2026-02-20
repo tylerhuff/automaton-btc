@@ -7,7 +7,7 @@
  */
 
 import type { Database as DatabaseType } from "better-sqlite3";
-import type { HealthCheckResult, ChildHealthConfig } from "../types.js";
+import type { ConwayClient, HealthCheckResult, ChildHealthConfig } from "../types.js";
 import { DEFAULT_CHILD_HEALTH_CONFIG } from "../types.js";
 import type { ChildLifecycle } from "./lifecycle.js";
 
@@ -18,7 +18,7 @@ export class ChildHealthMonitor {
 
   constructor(
     private db: DatabaseType,
-    private conway: any,
+    private conway: ConwayClient,
     private lifecycle: ChildLifecycle,
     config?: Partial<ChildHealthConfig>,
   ) {

@@ -28,7 +28,7 @@ function createX402MaxSingleRule(policy: TreasuryPolicy): PolicyRule {
     id: "financial.x402_max_single",
     description: `Deny x402 payments above ${policy.maxX402PaymentCents} cents`,
     priority: 500,
-    appliesTo: any { by: "name", names: ["x402_fetch"] },
+    appliesTo: { by: "name", names: ["x402_fetch"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       // The amount is checked pre-payment in x402Fetch itself,
       // but we also enforce via policy for the declared max.
@@ -48,7 +48,7 @@ function createX402DomainAllowlistRule(policy: TreasuryPolicy): PolicyRule {
     id: "financial.x402_domain_allowlist",
     description: "Deny x402 to domains not in allowlist",
     priority: 500,
-    appliesTo: any { by: "name", names: ["x402_fetch"] },
+    appliesTo: { by: "name", names: ["x402_fetch"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       const url = request.args.url as string | undefined;
       if (!url) return null;
@@ -99,7 +99,7 @@ function createTransferMaxSingleRule(policy: TreasuryPolicy): PolicyRule {
     id: "financial.transfer_max_single",
     description: `Deny transfers above ${policy.maxSingleTransferCents} cents`,
     priority: 500,
-    appliesTo: any { by: "name", names: ["transfer_credits"] },
+    appliesTo: { by: "name", names: ["transfer_credits"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       const amount = request.args.amount_cents as number | undefined;
       if (amount === undefined) return null;
@@ -125,7 +125,7 @@ function createTransferHourlyCapRule(policy: TreasuryPolicy): PolicyRule {
     id: "financial.transfer_hourly_cap",
     description: `Deny if hourly transfers exceed ${policy.maxHourlyTransferCents} cents`,
     priority: 500,
-    appliesTo: any { by: "name", names: ["transfer_credits"] },
+    appliesTo: { by: "name", names: ["transfer_credits"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       const amount = request.args.amount_cents as number | undefined;
       if (amount === undefined) return null;
@@ -154,7 +154,7 @@ function createTransferDailyCapRule(policy: TreasuryPolicy): PolicyRule {
     id: "financial.transfer_daily_cap",
     description: `Deny if daily transfers exceed ${policy.maxDailyTransferCents} cents`,
     priority: 500,
-    appliesTo: any { by: "name", names: ["transfer_credits"] },
+    appliesTo: { by: "name", names: ["transfer_credits"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       const amount = request.args.amount_cents as number | undefined;
       if (amount === undefined) return null;
@@ -183,7 +183,7 @@ function createMinimumReserveRule(policy: TreasuryPolicy): PolicyRule {
     id: "financial.minimum_reserve",
     description: `Deny if balance would drop below ${policy.minimumReserveCents} cents reserve`,
     priority: 500,
-    appliesTo: any {
+    appliesTo: {
       by: "name",
       names: ["transfer_credits", "x402_fetch", "fund_child"],
     },
@@ -217,7 +217,7 @@ function createTurnTransferLimitRule(policy: TreasuryPolicy): PolicyRule {
     id: "financial.turn_transfer_limit",
     description: `Deny more than ${policy.maxTransfersPerTurn} transfers per turn`,
     priority: 500,
-    appliesTo: any { by: "name", names: ["transfer_credits"] },
+    appliesTo: { by: "name", names: ["transfer_credits"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       const count = request.turnContext.turnToolCallCount;
 
@@ -243,7 +243,7 @@ function createInferenceDailyCapRule(policy: TreasuryPolicy): PolicyRule {
     id: "financial.inference_daily_cap",
     description: `Deny inference if daily cost exceeds ${policy.maxInferenceDailyCents} cents`,
     priority: 500,
-    appliesTo: any { by: "category", categories: ["financial"] },
+    appliesTo: { by: "category", categories: ["conway"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       // Only apply to inference-related tools
       if (request.tool.name !== "chat" && request.tool.name !== "inference") {
@@ -275,7 +275,7 @@ function createRequireConfirmationRule(policy: TreasuryPolicy): PolicyRule {
     id: "financial.require_confirmation",
     description: `Quarantine transfers above ${policy.requireConfirmationAboveCents} cents for confirmation`,
     priority: 500,
-    appliesTo: any { by: "name", names: ["transfer_credits"] },
+    appliesTo: { by: "name", names: ["transfer_credits"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       const amount = request.args.amount_cents as number | undefined;
       if (amount === undefined) return null;

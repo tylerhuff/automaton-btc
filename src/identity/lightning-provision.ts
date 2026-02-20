@@ -121,7 +121,7 @@ export async function verifyLightningPayment(
   try {
     // Check if the invoice was paid via Coinos
     const response = await fetch(`https://coinos.io/api/lightning/invoice/${invoice}`, {
-      headers: any {
+      headers: {
         "Authorization": `Bearer ${account.coinosToken}`,
         "Content-Type": "application/json",
       },

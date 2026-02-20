@@ -21,7 +21,7 @@ export class RelationshipMemoryManager {
    * Record a relationship. Upserts on entityAddress.
    * Returns the ULID id.
    */
-  record(entry: any {
+  record(entry: {
     entityAddress: string;
     entityName?: string | null;
     relationshipType: string;

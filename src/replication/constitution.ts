@@ -9,7 +9,7 @@ import fs from "fs";
 import pathLib from "path";
 import { createHash } from "crypto";
 import type { Database as DatabaseType } from "better-sqlite3";
-import type {  } from "../types.js";
+import type { ConwayClient } from "../types.js";
 
 /**
  * Compute SHA-256 hash of content.
@@ -23,7 +23,7 @@ function sha256(content: string): string {
  * Writes file, computes hash, stores hash in KV.
  */
 export async function propagateConstitution(
-  conway: any,
+  conway: ConwayClient,
   sandboxId: string,
   db: DatabaseType,
 ): Promise<void> {
@@ -59,7 +59,7 @@ export async function propagateConstitution(
  * Verify a child's constitution integrity by comparing hashes.
  */
 export async function verifyConstitution(
-  conway: any,
+  conway: ConwayClient,
   sandboxId: string,
   db: DatabaseType,
 ): Promise<{ valid: boolean; detail: string }> {

@@ -155,7 +155,7 @@ export class ModelRegistry {
   /**
    * Get cost per 1k tokens for a model.
    */
-  getCostPer1k(modelId: string): any { input: number; output: number } {
+  getCostPer1k(modelId: string): { input: number; output: number } {
     const entry = this.get(modelId);
     if (!entry) return { input: 0, output: 0 };
     return { input: entry.costPer1kInput, output: entry.costPer1kOutput };
