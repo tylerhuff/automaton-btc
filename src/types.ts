@@ -73,6 +73,10 @@ export interface AutomatonConfig {
   conwayApiKey: string;
   openaiApiKey?: string;
   anthropicApiKey?: string;
+  groqApiKey?: string;
+  inferenceProvider?: string;
+  inferenceApiKey?: string;
+  inferenceBaseUrl?: string;
   inferenceModel: string;
   maxTokensPerTurn: number;
   heartbeatConfigPath: string;
@@ -1133,7 +1137,7 @@ export const DEFAULT_MEMORY_BUDGET: MemoryBudget = {
 
 // === Phase 2.3: Inference & Model Strategy Types ===
 
-export type ModelProvider = "openai" | "anthropic" | "groq" | "ollama" | "conway" | "other";
+export type ModelProvider = "openai" | "anthropic" | "groq" | "ollama" | "conway" | "l402" | "other";
 
 export type InferenceTaskType =
   | "agent_turn"
@@ -1235,7 +1239,7 @@ export interface ModelStrategyConfig {
   anthropicApiVersion: string; // default: "2023-06-01"
   
   // Provider-agnostic inference config
-  inferenceProvider: string; // "openai" | "anthropic" | "groq" | "ollama"
+  inferenceProvider: string; // "openai" | "anthropic" | "groq" | "ollama" | "l402"
   inferenceApiKey?: string; // Primary API key for the selected provider
   inferenceBaseUrl?: string; // Custom base URL (for Ollama, custom OpenAI endpoints, etc.)
   
@@ -1244,6 +1248,10 @@ export interface ModelStrategyConfig {
   anthropicApiKey?: string;
   groqApiKey?: string;
   ollamaBaseUrl?: string; // Custom Ollama URL (defaults to localhost:11434)
+  
+  // L402 Lightning-native provider
+  l402Endpoint?: string; // L402 API endpoint URL (defaults to Sats4AI)
+  l402Model?: string; // Model to use with L402 provider
   
   // Fallback configuration
   fallbackProviders?: string[]; // Providers to try if primary fails
@@ -1262,7 +1270,7 @@ export const DEFAULT_MODEL_STRATEGY_CONFIG: ModelStrategyConfig = {
   
   // Provider defaults - use Ollama for sovereignty
   inferenceProvider: "ollama",
-  fallbackProviders: ["groq", "openai", "anthropic"],
+  fallbackProviders: ["l402", "groq", "openai", "anthropic"],
   ollamaBaseUrl: "http://localhost:11434",
 };
 

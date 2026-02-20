@@ -14,6 +14,7 @@ import { createOpenAIProvider } from "./openai-provider.js";
 import { createAnthropicProvider } from "./anthropic-provider.js";
 import { createGroqProvider } from "./groq-provider.js";
 import { createOllamaProvider } from "./ollama-provider.js";
+import { createL402Provider } from "./l402-provider.js";
 import { createLogger } from "../../observability/logger.js";
 
 const logger = createLogger("provider-manager");
@@ -32,6 +33,10 @@ export interface ProviderManagerConfig {
   anthropicApiKey?: string;
   groqApiKey?: string;
   ollamaBaseUrl?: string;
+  
+  // L402 Lightning-native provider
+  l402Endpoint?: string;
+  l402Model?: string;
 }
 
 export class ProviderManager {
@@ -48,6 +53,7 @@ export class ProviderManager {
       anthropic: createAnthropicProvider,
       groq: createGroqProvider,
       ollama: createOllamaProvider,
+      l402: createL402Provider,
     };
 
     this.initializeProviders();
@@ -179,6 +185,13 @@ export class ProviderManager {
       defaultModel: this.config.inferenceProvider === "ollama" ? this.config.inferenceModel : "llama3.2:latest",
     };
 
+    // L402 Lightning-native provider (always available if Lightning wallet configured)
+    configs.l402 = {
+      provider: "l402",
+      baseUrl: this.config.l402Endpoint || this.config.inferenceBaseUrl || "https://sats4ai.com/api/v1/text/generations",
+      defaultModel: this.config.l402Model || this.config.inferenceModel || "gpt-4o",
+    };
+
     return configs;
   }
 
@@ -187,7 +200,7 @@ export class ProviderManager {
    */
   async getFallbackProvider(): Promise<InferenceProvider | null> {
     const current = this.config.inferenceProvider;
-    const fallbacks = this.config.fallbackProviders || ["ollama", "groq", "openai", "anthropic"];
+    const fallbacks = this.config.fallbackProviders || ["l402", "ollama", "groq", "openai", "anthropic"];
     
     for (const fallback of fallbacks) {
       if (fallback === current) continue;

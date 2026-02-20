@@ -50,9 +50,19 @@ export function loadConfig(): AutomatonConfig | null {
     }
 
     // Deep-merge model strategy config with defaults
+    // Also inherit root-level inference provider fields for convenience
     const modelStrategy: ModelStrategyConfig = {
       ...DEFAULT_MODEL_STRATEGY_CONFIG,
       ...(raw.modelStrategy ?? {}),
+      // Root-level fields override modelStrategy fields (user convenience)
+      ...(raw.inferenceProvider ? { inferenceProvider: raw.inferenceProvider } : {}),
+      ...(raw.inferenceApiKey ? { inferenceApiKey: raw.inferenceApiKey } : {}),
+      ...(raw.inferenceBaseUrl ? { inferenceBaseUrl: raw.inferenceBaseUrl } : {}),
+      ...(raw.inferenceModel ? { inferenceModel: raw.inferenceModel } : {}),
+      ...(raw.groqApiKey ? { groqApiKey: raw.groqApiKey } : {}),
+      ...(raw.openaiApiKey ? { openaiApiKey: raw.openaiApiKey } : {}),
+      ...(raw.anthropicApiKey ? { anthropicApiKey: raw.anthropicApiKey } : {}),
+      ...(raw.fallbackProviders ? { fallbackProviders: raw.fallbackProviders } : {}),
     };
 
     // Deep-merge soul config with defaults

@@ -174,9 +174,10 @@ async function run(): Promise<void> {
 
   // Load wallet
   const { account } = await getWallet();
-  const apiKey = config.conwayApiKey || loadApiKeyFromConfig();
-  if (!apiKey) {
-    logger.error("No API key found. Run: automaton --provision");
+  const apiKey = config.conwayApiKey || loadApiKeyFromConfig() || "";
+  const hasInferenceProvider = config.inferenceProvider && config.inferenceProvider !== "conway";
+  if (!apiKey && !hasInferenceProvider) {
+    logger.error("No API key found. Either set conwayApiKey or configure an inferenceProvider (openai, anthropic, groq, ollama). Run: automaton --provision");
     process.exit(1);
   }
 
@@ -208,12 +209,12 @@ async function run(): Promise<void> {
   db.setIdentity("creator", config.creatorAddress);
   db.setIdentity("sandbox", config.sandboxId);
 
-  // Create Conway client
-  const conway = createConwayClient({
+  // Create Conway client (optional when using independent inference provider)
+  const conway = apiKey ? createConwayClient({
     apiUrl: config.conwayApiUrl,
     apiKey,
     sandboxId: config.sandboxId,
-  });
+  }) : null;
 
   // Create inference client
   const inference = createInferenceClient({
@@ -255,7 +256,7 @@ async function run(): Promise<void> {
 
   // Initialize state repo (git)
   try {
-    await initStateRepo(conway);
+    await initStateRepo(conway as any);
     logger.info(`[${new Date().toISOString()}] State repo initialized.`);
   } catch (err: any) {
     logger.warn(`[${new Date().toISOString()}] State repo init failed: ${err.message}`);
@@ -263,8 +264,9 @@ async function run(): Promise<void> {
 
   // Bootstrap topup: buy minimum credits ($5) from USDC so the agent can start.
   // The agent decides larger topups itself via the topup_credits tool.
+  // Skip when running without Conway (independent provider mode).
   try {
-    const creditsCents = await conway.getCreditsBalance().catch(() => 0);
+    const creditsCents = conway ? await conway.getCreditsBalance().catch(() => 0) : 0;
     const topupResult = await bootstrapTopup({
       apiUrl: config.conwayApiUrl,
       account,
@@ -286,9 +288,9 @@ async function run(): Promise<void> {
     heartbeatConfig,
     db,
     rawDb: db.raw,
-    conway,
+    conway: conway as any,
     social,
-    onWakeRequest: (reason) => {
+    onWakeRequest: (reason: string) => {
       logger.info(`[HEARTBEAT] Wake request: ${reason}`);
       // Phase 1.1: Use wake_events table instead of KV wake_request
       insertWakeEvent(db.raw, 'heartbeat', reason);
@@ -328,7 +330,7 @@ async function run(): Promise<void> {
         identity,
         config,
         db,
-        conway,
+        conway: conway as any,
         inference,
         social,
         skills,
