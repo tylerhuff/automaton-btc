@@ -22,7 +22,7 @@ import { createLogger } from "../observability/logger.js";
 
 const logger = createLogger("lightning-wallet");
 
-const COINOS_BASE = "https://coinos.io";
+const COINOS_BASE = "https://coinos.io/api";
 
 const AUTOMATON_DIR = path.join(
   process.env.HOME || "/root",
@@ -142,7 +142,8 @@ export function lightningWalletExists(): boolean {
 function coinosHeaders(token: string): Record<string, string> {
   return {
     "Content-Type": "application/json",
-    Cookie: `token=${token}`,
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
   };
 }
 
@@ -211,9 +212,10 @@ export async function createLightningInvoice(
     },
   });
 
-  // Coinos returns various shapes; normalise
-  const bolt11 = result.text || result.bolt11 || result.payment_request || result.hash || "";
-  const hash = result.hash || result.payment_hash || "";
+  // Coinos returns the bolt11 in the `hash` field (confusingly named)
+  // and the internal payment hash in result.id or result.payment_hash
+  const bolt11 = result.hash || result.text || result.bolt11 || result.payment_request || "";
+  const hash = result.id || result.payment_hash || bolt11;
 
   return {
     invoice: bolt11,
@@ -307,7 +309,7 @@ export async function decodeLightningInvoice(
   payee: string;
   expiry: number;
 }> {
-  const url = `${COINOS_BASE}/decode/${encodeURIComponent(bolt11)}`;
+  const url = `https://coinos.io/decode/${encodeURIComponent(bolt11)}`;
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`Decode failed: ${resp.status}`);
   const d = await resp.json();
