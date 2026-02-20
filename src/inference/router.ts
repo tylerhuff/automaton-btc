@@ -47,15 +47,12 @@ export class InferenceRouter {
     if (modelConfig) {
       try {
         const providerConfig: ProviderManagerConfig = {
-          inferenceProvider: modelConfig.inferenceProvider || "ollama",
-          inferenceApiKey: modelConfig.inferenceApiKey,
+          inferenceProvider: modelConfig.inferenceProvider || "l402",
           inferenceBaseUrl: modelConfig.inferenceBaseUrl,
           inferenceModel: modelConfig.inferenceModel,
-          openaiApiKey: modelConfig.openaiApiKey,
-          anthropicApiKey: modelConfig.anthropicApiKey,
-          groqApiKey: modelConfig.groqApiKey,
           ollamaBaseUrl: modelConfig.ollamaBaseUrl,
-          fallbackProviders: modelConfig.fallbackProviders,
+          l402Endpoint: modelConfig.l402Endpoint,
+          l402Model: modelConfig.l402Model,
         };
         this.providers = new ProviderManager(providerConfig);
       } catch (error) {
@@ -369,9 +366,9 @@ export class InferenceRouter {
       throw new Error("Cannot route inference with empty message array");
     }
 
-    if (provider === "anthropic") {
-      return this.fixAnthropicMessages(messages);
-    }
+    // L402 providers may expose different underlying models (GPT, Claude, etc)
+    // For now, use default OpenAI-compatible format for all providers
+    // TODO: Enhance L402 provider to handle model-specific message formatting
 
     // For OpenAI/Conway, merge consecutive same-role messages
     return this.mergeConsecutiveSameRole(messages);

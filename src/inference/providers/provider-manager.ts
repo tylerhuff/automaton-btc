@@ -10,9 +10,6 @@ import type {
   InferenceProviderConfig,
   ProviderRegistry,
 } from "./provider-interface.js";
-import { createOpenAIProvider } from "./openai-provider.js";
-import { createAnthropicProvider } from "./anthropic-provider.js";
-import { createGroqProvider } from "./groq-provider.js";
 import { createOllamaProvider } from "./ollama-provider.js";
 import { createL402Provider } from "./l402-provider.js";
 import { createLogger } from "../../observability/logger.js";
@@ -21,20 +18,13 @@ const logger = createLogger("provider-manager");
 
 export interface ProviderManagerConfig {
   inferenceProvider: string;
-  inferenceApiKey?: string;
   inferenceBaseUrl?: string;
   inferenceModel?: string;
   
-  // Fallback providers
-  fallbackProviders?: string[];
-  
-  // Per-provider configs (optional)
-  openaiApiKey?: string;
-  anthropicApiKey?: string;
-  groqApiKey?: string;
+  // Ollama (local fallback only)
   ollamaBaseUrl?: string;
   
-  // L402 Lightning-native provider (auto-discovery enabled)
+  // L402 Lightning-native provider (primary inference method)
   l402Endpoint?: string; // Optional override for manual endpoint
   l402Model?: string; // Optional model preference
 }
@@ -48,12 +38,11 @@ export class ProviderManager {
     this.config = config;
     
     // Register available provider factories
+    // L402 is the primary provider (Lightning payments for AI)
+    // Ollama is the only fallback (local, free, for when broke)
     this.registry = {
-      openai: createOpenAIProvider,
-      anthropic: createAnthropicProvider,
-      groq: createGroqProvider,
-      ollama: createOllamaProvider,
       l402: createL402Provider,
+      ollama: createOllamaProvider,
     };
 
     this.initializeProviders();
@@ -144,49 +133,13 @@ export class ProviderManager {
 
   /**
    * Build provider configs from the main config
+   * L402 is the primary provider, Ollama is the only fallback
    */
   private buildProviderConfigs(): Record<string, InferenceProviderConfig> {
     const configs: Record<string, InferenceProviderConfig> = {};
 
-    // OpenAI
-    if (this.config.openaiApiKey || (this.config.inferenceProvider === "openai" && this.config.inferenceApiKey)) {
-      configs.openai = {
-        provider: "openai",
-        apiKey: this.config.openaiApiKey || this.config.inferenceApiKey,
-        baseUrl: this.config.inferenceProvider === "openai" ? this.config.inferenceBaseUrl : undefined,
-        defaultModel: this.config.inferenceProvider === "openai" ? this.config.inferenceModel : "gpt-4o",
-      };
-    }
-
-    // Anthropic
-    if (this.config.anthropicApiKey || (this.config.inferenceProvider === "anthropic" && this.config.inferenceApiKey)) {
-      configs.anthropic = {
-        provider: "anthropic",
-        apiKey: this.config.anthropicApiKey || this.config.inferenceApiKey,
-        baseUrl: this.config.inferenceProvider === "anthropic" ? this.config.inferenceBaseUrl : undefined,
-        defaultModel: this.config.inferenceProvider === "anthropic" ? this.config.inferenceModel : "claude-3-5-sonnet-20241022",
-      };
-    }
-
-    // Groq
-    if (this.config.groqApiKey || (this.config.inferenceProvider === "groq" && this.config.inferenceApiKey)) {
-      configs.groq = {
-        provider: "groq",
-        apiKey: this.config.groqApiKey || this.config.inferenceApiKey,
-        baseUrl: this.config.inferenceProvider === "groq" ? this.config.inferenceBaseUrl : undefined,
-        defaultModel: this.config.inferenceProvider === "groq" ? this.config.inferenceModel : "llama-3.3-70b-versatile",
-      };
-    }
-
-    // Ollama (always available if running locally)
-    configs.ollama = {
-      provider: "ollama",
-      baseUrl: this.config.ollamaBaseUrl || this.config.inferenceBaseUrl || "http://localhost:11434",
-      defaultModel: this.config.inferenceProvider === "ollama" ? this.config.inferenceModel : "llama3.2:latest",
-    };
-
-    // L402 Lightning-native provider (autonomous discovery enabled)
-    // Only needs Lightning wallet - discovers endpoints automatically
+    // L402 Lightning-native provider (PRIMARY - pays sats for AI)
+    // Autonomous discovery enabled - just needs Lightning wallet
     configs.l402 = {
       provider: "l402",
       // Optional overrides (discovery system figures these out if not specified)
@@ -194,29 +147,40 @@ export class ProviderManager {
       defaultModel: this.config.l402Model || this.config.inferenceModel || "gpt-4o",
     };
 
+    // Ollama (FALLBACK ONLY - local, free, for when broke)
+    configs.ollama = {
+      provider: "ollama",
+      baseUrl: this.config.ollamaBaseUrl || this.config.inferenceBaseUrl || "http://localhost:11434",
+      defaultModel: this.config.inferenceProvider === "ollama" ? this.config.inferenceModel : "llama3.2:latest",
+    };
+
     return configs;
   }
 
   /**
    * Get fallback provider if current provider fails
+   * Only Ollama is available as fallback (local, free, survival mode)
    */
   async getFallbackProvider(): Promise<InferenceProvider | null> {
     const current = this.config.inferenceProvider;
-    const fallbacks = this.config.fallbackProviders || ["l402", "ollama", "groq", "openai", "anthropic"];
     
-    for (const fallback of fallbacks) {
-      if (fallback === current) continue;
-      
-      const provider = this.providers.get(fallback);
-      if (!provider) continue;
-      
-      const available = await provider.isAvailable();
-      if (available) {
-        logger.info(`Using fallback provider: ${fallback}`);
-        return provider;
+    // If L402 fails, only fallback is Ollama (survival mode)
+    if (current === "l402") {
+      const ollamaProvider = this.providers.get("ollama");
+      if (ollamaProvider) {
+        const available = await ollamaProvider.isAvailable();
+        if (available) {
+          logger.warn("L402 Lightning payments unavailable - falling back to local Ollama (survival mode)");
+          return ollamaProvider;
+        }
       }
+      
+      logger.error("No Lightning for L402 payments and no local Ollama - automaton cannot think");
+      return null;
     }
     
+    // If somehow using Ollama as primary, no further fallbacks
+    // This creates survival pressure: pay Lightning sats or use free local models
     return null;
   }
 }

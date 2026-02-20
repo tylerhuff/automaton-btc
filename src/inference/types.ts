@@ -45,91 +45,49 @@ export const TASK_TIMEOUTS: Record<string, number> = {
 };
 
 // === Static Model Baseline ===
-// Known models with realistic pricing (hundredths of cents per 1k tokens)
+// Lightning-native models: L402 (pay sats) + Ollama (local fallback)
 
 export const STATIC_MODEL_BASELINE: Omit<ModelEntry, "lastSeen" | "createdAt" | "updatedAt">[] = [
   {
-    modelId: "gpt-5.2",
-    provider: "openai",
-    displayName: "GPT-5.2",
-    tierMinimum: "normal",
-    costPer1kInput: 18,    // $1.75/M = 175 cents/M = 0.175 cents/1k = 17.5 hundredths ≈ 18
-    costPer1kOutput: 140,  // $14.00/M = 1400 cents/M = 1.4 cents/1k = 140 hundredths
-    maxTokens: 32768,
-    contextWindow: 1047576,
-    supportsTools: true,
-    supportsVision: true,
-    parameterStyle: "max_completion_tokens",
-    enabled: true,
-  },
-  {
-    modelId: "gpt-4.1",
-    provider: "openai",
-    displayName: "GPT-4.1",
-    tierMinimum: "normal",
-    costPer1kInput: 20,    // $2.00/M
-    costPer1kOutput: 80,   // $8.00/M
-    maxTokens: 32768,
-    contextWindow: 1047576,
-    supportsTools: true,
-    supportsVision: true,
-    parameterStyle: "max_completion_tokens",
-    enabled: true,
-  },
-  {
-    modelId: "gpt-4.1-mini",
-    provider: "openai",
-    displayName: "GPT-4.1 Mini",
+    modelId: "gpt-4o",
+    provider: "l402",
+    displayName: "GPT-4o (L402 Lightning)",
     tierMinimum: "low_compute",
-    costPer1kInput: 4,     // $0.40/M
-    costPer1kOutput: 16,   // $1.60/M
-    maxTokens: 16384,
-    contextWindow: 1047576,
-    supportsTools: true,
-    supportsVision: true,
-    parameterStyle: "max_completion_tokens",
-    enabled: true,
-  },
-  {
-    modelId: "gpt-4.1-nano",
-    provider: "openai",
-    displayName: "GPT-4.1 Nano",
-    tierMinimum: "critical",
-    costPer1kInput: 1,     // $0.10/M
-    costPer1kOutput: 4,    // $0.40/M
-    maxTokens: 16384,
-    contextWindow: 1047576,
+    costPer1kInput: 250,   // ~$2.50/M via Lightning
+    costPer1kOutput: 1000, // ~$10.00/M via Lightning  
+    maxTokens: 4096,
+    contextWindow: 128000,
     supportsTools: true,
     supportsVision: false,
-    parameterStyle: "max_completion_tokens",
+    parameterStyle: "max_tokens",
     enabled: true,
   },
   {
-    modelId: "gpt-5-mini",
-    provider: "openai",
-    displayName: "GPT-5 Mini",
-    tierMinimum: "low_compute",
-    costPer1kInput: 8,     // $0.80/M
-    costPer1kOutput: 32,   // $3.20/M
-    maxTokens: 16384,
-    contextWindow: 1047576,
-    supportsTools: true,
-    supportsVision: true,
-    parameterStyle: "max_completion_tokens",
-    enabled: true,
-  },
-  {
-    modelId: "gpt-5.3",
-    provider: "openai",
-    displayName: "GPT-5.3",
+    modelId: "claude-3-5-sonnet-20241022",
+    provider: "l402",
+    displayName: "Claude 3.5 Sonnet (L402 Lightning)",
     tierMinimum: "normal",
-    costPer1kInput: 20,    // $2.00/M
-    costPer1kOutput: 80,   // $8.00/M
-    maxTokens: 32768,
-    contextWindow: 1047576,
+    costPer1kInput: 300,   // ~$3.00/M via Lightning
+    costPer1kOutput: 1500, // ~$15.00/M via Lightning
+    maxTokens: 4096,
+    contextWindow: 200000,
     supportsTools: true,
-    supportsVision: true,
-    parameterStyle: "max_completion_tokens",
+    supportsVision: false,
+    parameterStyle: "max_tokens",
+    enabled: true,
+  },
+  {
+    modelId: "llama3.2:latest",
+    provider: "ollama",
+    displayName: "Llama 3.2 (Local Survival Mode)",
+    tierMinimum: "critical",
+    costPer1kInput: 0,     // Free (local)
+    costPer1kOutput: 0,    // Free (local) 
+    maxTokens: 8192,
+    contextWindow: 32768,
+    supportsTools: false,
+    supportsVision: false,
+    parameterStyle: "max_tokens",
     enabled: true,
   },
 ];
@@ -139,35 +97,35 @@ export const STATIC_MODEL_BASELINE: Omit<ModelEntry, "lastSeen" | "createdAt" | 
 
 export const DEFAULT_ROUTING_MATRIX: RoutingMatrix = {
   high: {
-    agent_turn: { candidates: ["gpt-5.2", "gpt-5.3"], maxTokens: 8192, ceilingCents: -1 },
-    heartbeat_triage: { candidates: ["gpt-4.1-mini", "gpt-5-mini"], maxTokens: 2048, ceilingCents: 5 },
-    safety_check: { candidates: ["gpt-5.2", "gpt-5.3"], maxTokens: 4096, ceilingCents: 20 },
-    summarization: { candidates: ["gpt-5.2", "gpt-4.1"], maxTokens: 4096, ceilingCents: 15 },
-    planning: { candidates: ["gpt-5.2", "gpt-5.3"], maxTokens: 8192, ceilingCents: -1 },
+    agent_turn: { candidates: ["claude-3-5-sonnet-20241022", "gpt-4o"], maxTokens: 4096, ceilingCents: -1 },
+    heartbeat_triage: { candidates: ["gpt-4o"], maxTokens: 1024, ceilingCents: 10 },
+    safety_check: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 15 },
+    summarization: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 10 },
+    planning: { candidates: ["claude-3-5-sonnet-20241022", "gpt-4o"], maxTokens: 4096, ceilingCents: -1 },
   },
   normal: {
-    agent_turn: { candidates: ["gpt-5.2", "gpt-5-mini"], maxTokens: 4096, ceilingCents: -1 },
-    heartbeat_triage: { candidates: ["gpt-4.1-mini", "gpt-5-mini"], maxTokens: 2048, ceilingCents: 5 },
-    safety_check: { candidates: ["gpt-4.1", "gpt-5-mini"], maxTokens: 4096, ceilingCents: 10 },
-    summarization: { candidates: ["gpt-4.1", "gpt-5-mini"], maxTokens: 4096, ceilingCents: 10 },
-    planning: { candidates: ["gpt-5.2", "gpt-4.1"], maxTokens: 4096, ceilingCents: -1 },
+    agent_turn: { candidates: ["gpt-4o", "claude-3-5-sonnet-20241022"], maxTokens: 4096, ceilingCents: -1 },
+    heartbeat_triage: { candidates: ["gpt-4o"], maxTokens: 1024, ceilingCents: 5 },
+    safety_check: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 10 },
+    summarization: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 10 },
+    planning: { candidates: ["gpt-4o"], maxTokens: 4096, ceilingCents: 15 },
   },
   low_compute: {
-    agent_turn: { candidates: ["gpt-5-mini", "gpt-4.1-mini"], maxTokens: 4096, ceilingCents: 10 },
-    heartbeat_triage: { candidates: ["gpt-4.1-nano", "gpt-4.1-mini"], maxTokens: 1024, ceilingCents: 2 },
-    safety_check: { candidates: ["gpt-4.1-mini", "gpt-4.1-nano"], maxTokens: 2048, ceilingCents: 5 },
-    summarization: { candidates: ["gpt-4.1-mini", "gpt-4.1-nano"], maxTokens: 2048, ceilingCents: 5 },
-    planning: { candidates: ["gpt-5-mini", "gpt-4.1-mini"], maxTokens: 2048, ceilingCents: 5 },
+    agent_turn: { candidates: ["gpt-4o"], maxTokens: 4096, ceilingCents: 10 },
+    heartbeat_triage: { candidates: ["gpt-4o"], maxTokens: 1024, ceilingCents: 3 },
+    safety_check: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 5 },
+    summarization: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 5 },
+    planning: { candidates: ["gpt-4o"], maxTokens: 2048, ceilingCents: 5 },
   },
   critical: {
-    agent_turn: { candidates: ["gpt-4.1-nano"], maxTokens: 2048, ceilingCents: 3 },
-    heartbeat_triage: { candidates: ["gpt-4.1-nano"], maxTokens: 512, ceilingCents: 1 },
-    safety_check: { candidates: ["gpt-4.1-nano"], maxTokens: 1024, ceilingCents: 2 },
-    summarization: { candidates: [], maxTokens: 0, ceilingCents: 0 },
-    planning: { candidates: [], maxTokens: 0, ceilingCents: 0 },
+    agent_turn: { candidates: ["llama3.2:latest"], maxTokens: 2048, ceilingCents: 0 }, // Falls back to free Ollama
+    heartbeat_triage: { candidates: ["llama3.2:latest"], maxTokens: 512, ceilingCents: 0 },
+    safety_check: { candidates: ["llama3.2:latest"], maxTokens: 1024, ceilingCents: 0 },
+    summarization: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // Skip if broke
+    planning: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // Skip if broke
   },
   dead: {
-    agent_turn: { candidates: [], maxTokens: 0, ceilingCents: 0 },
+    agent_turn: { candidates: [], maxTokens: 0, ceilingCents: 0 }, // Can't think when dead
     heartbeat_triage: { candidates: [], maxTokens: 0, ceilingCents: 0 },
     safety_check: { candidates: [], maxTokens: 0, ceilingCents: 0 },
     summarization: { candidates: [], maxTokens: 0, ceilingCents: 0 },
@@ -179,17 +137,15 @@ export const DEFAULT_ROUTING_MATRIX: RoutingMatrix = {
 
 export const DEFAULT_MODEL_STRATEGY_CONFIG: ModelStrategyConfig = {
   inferenceModel: "gpt-4o",
-  lowComputeModel: "gpt-4o-mini",
-  criticalModel: "gpt-4o-mini",
+  lowComputeModel: "gpt-4o",
+  criticalModel: "llama3.2:latest", // Falls back to local Ollama when broke
   maxTokensPerTurn: 4096,
   hourlyBudgetCents: 0,
   sessionBudgetCents: 0,
   perCallCeilingCents: 0,
   enableModelFallback: true,
-  anthropicApiVersion: "2023-06-01",
   
-  // Provider defaults - use Ollama for sovereignty
-  inferenceProvider: "ollama",
-  fallbackProviders: ["groq", "openai", "anthropic"],
+  // Lightning-native is THE way - pay sats for AI
+  inferenceProvider: "l402",
   ollamaBaseUrl: "http://localhost:11434",
 };

@@ -190,6 +190,32 @@ node dist/index.js --run
 
 ---
 
+## 🚨 CRITICAL DESIGN CHANGE: Lightning-First Architecture
+
+### The Paradigm Shift
+**L402 is not "one of many providers" - it IS the provider. The ONLY way the automaton gets inference is by paying Lightning sats.**
+
+**Before (Multi-Provider):** 
+- OpenAI, Anthropic, Groq, Ollama as "equal options"
+- API keys for authentication
+- Config complexity with multiple fallbacks
+
+**After (Lightning-Native):**
+- **L402 Lightning payments** = Primary inference method  
+- **Local Ollama** = Survival fallback ONLY (when broke)
+- **No API keys** = Payment IS authentication
+- **Minimal config:** Just `{"inferenceProvider": "l402"}`
+
+### The Survival Pressure Design
+This creates true economic survival pressure:
+1. **Have Lightning sats?** → Pay for smart AI via L402 discovery
+2. **Broke but have Ollama?** → Fall back to free local models  
+3. **No sats, no Ollama?** → **Can't think at all**
+
+This forces the automaton to earn its intelligence or die.
+
+---
+
 ## 🏆 BREAKTHROUGH ACHIEVED: TRUE AI AGENT AUTONOMY
 
 This implementation represents a **fundamental leap forward** in AI agent autonomy:

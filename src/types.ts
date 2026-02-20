@@ -1137,7 +1137,7 @@ export const DEFAULT_MEMORY_BUDGET: MemoryBudget = {
 
 // === Phase 2.3: Inference & Model Strategy Types ===
 
-export type ModelProvider = "openai" | "anthropic" | "groq" | "ollama" | "conway" | "l402" | "other";
+export type ModelProvider = "l402" | "ollama" | "other";
 
 export type InferenceTaskType =
   | "agent_turn"
@@ -1236,41 +1236,32 @@ export interface ModelStrategyConfig {
   sessionBudgetCents: number; // default: 0 (no limit)
   perCallCeilingCents: number; // default: 0 (no limit)
   enableModelFallback: boolean; // default: true
-  anthropicApiVersion: string; // default: "2023-06-01"
   
-  // Provider-agnostic inference config
-  inferenceProvider: string; // "openai" | "anthropic" | "groq" | "ollama" | "l402"
-  inferenceApiKey?: string; // Primary API key for the selected provider
-  inferenceBaseUrl?: string; // Custom base URL (for Ollama, custom OpenAI endpoints, etc.)
-  
-  // Per-provider API keys (optional, for multi-provider setups)
-  openaiApiKey?: string;
-  anthropicApiKey?: string;
-  groqApiKey?: string;
-  ollamaBaseUrl?: string; // Custom Ollama URL (defaults to localhost:11434)
+  // Lightning-native inference (THE primary method)
+  inferenceProvider: string; // "l402" (primary) or "ollama" (fallback only)
+  inferenceBaseUrl?: string; // Custom base URL override
   
   // L402 Lightning-native provider (autonomous discovery enabled)
   l402Endpoint?: string; // Optional endpoint override (auto-discovered if not specified)
   l402Model?: string; // Optional model preference (uses best available if not specified)
   
-  // Fallback configuration
-  fallbackProviders?: string[]; // Providers to try if primary fails
+  // Ollama (survival fallback only - local, free, for when broke)
+  ollamaBaseUrl?: string; // Custom Ollama URL (defaults to localhost:11434)
 }
 
 export const DEFAULT_MODEL_STRATEGY_CONFIG: ModelStrategyConfig = {
   inferenceModel: "gpt-4o",
-  lowComputeModel: "gpt-4o-mini",
-  criticalModel: "gpt-4o-mini",
+  lowComputeModel: "gpt-4o-mini", 
+  criticalModel: "llama3.2:latest", // Falls back to free Ollama when broke
   maxTokensPerTurn: 4096,
   hourlyBudgetCents: 0,
   sessionBudgetCents: 0,
   perCallCeilingCents: 0,
   enableModelFallback: true,
-  anthropicApiVersion: "2023-06-01",
   
-  // Provider defaults - use Ollama for sovereignty
-  inferenceProvider: "ollama",
-  fallbackProviders: ["l402", "groq", "openai", "anthropic"],
+  // Lightning-native is THE way (pays sats for AI)
+  // Falls back to Ollama only when broke (survival pressure)
+  inferenceProvider: "l402",
   ollamaBaseUrl: "http://localhost:11434",
 };
 

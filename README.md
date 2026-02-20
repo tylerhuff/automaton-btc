@@ -54,9 +54,15 @@ npm install && npm run build
 # ~/.automaton/lightning-wallet.json (Coinos token)
 # Or set AUTOMATON_SECRETS_DIR to your secrets directory
 
-node dist/index.js --init    # Initialize Lightning wallet
-node dist/index.js --run     # Start the automaton
+node dist/index.js --init    # Initialize Lightning wallet  
+node dist/index.js --run     # Start Lightning-native automaton
 ```
+
+The automaton will automatically:
+1. **Discover** L402 inference providers from the global directory
+2. **Select** the cheapest, fastest, most reliable option
+3. **Pay** Lightning sats for each AI inference request
+4. **Fall back** to local Ollama only if broke
 
 ## How It Works
 
@@ -96,80 +102,46 @@ Send: POST /payments (bolt11) or POST /send/:addr/:amount
 
 Optionally, [Alby](https://getalby.com) can be used as a secondary wallet via NWC.
 
-## Inference Providers (Pick Your Own)
+## Lightning-Native AI Inference  
 
-**Complete sovereignty means no single AI provider dependency.** This fork supports multiple inference providers:
+**The automaton pays for its own thinking with Lightning sats. No API keys. No accounts. Payment IS authentication.**
 
-### Supported Providers
+### How It Works
 
-| Provider | Best For | Cost | Setup |
+| Method | Purpose | Cost | Setup |
 |---|---|---|---|
-| **L402** | 🏆 **True sovereignty** | Pay-per-use sats | Lightning wallet only |
-| **Ollama** | Full sovereignty | Free | Install locally: `ollama pull llama3.2` |
-| **Groq** | Speed + cost efficiency | ~$0.60/M tokens | Get API key at groq.com |
-| **OpenAI** | Frontier models | $2-15/M tokens | Get API key at platform.openai.com |
-| **Anthropic** | Claude models | $3-75/M tokens | Get API key at console.anthropic.com |
+| **L402 Lightning** | 🏆 **Primary inference** | Pay-per-use sats | Lightning wallet only |
+| **Ollama Local** | 🆘 **Survival fallback** | Free | Install locally: `ollama pull llama3.2` |
+
+**The design philosophy:** If the automaton can't pay Lightning sats, it falls back to free local models. If it has no local models and no sats, it can't think. This creates survival pressure.
 
 ### Configuration
 
-Add to your `~/.automaton/automaton.json`:
-
-```json
-{
-  "inferenceProvider": "l402",
-  "fallbackProviders": ["ollama", "groq", "openai"],
-  
-  "groqApiKey": "gsk_...",
-  "openaiApiKey": "sk-...", 
-  "anthropicApiKey": "sk-ant-..."
-}
-```
-
-### Provider Options
-
-**Ollama (Recommended for sovereignty):**
-```json
-{
-  "inferenceProvider": "ollama",
-  "inferenceModel": "llama3.2:latest",
-  "ollamaBaseUrl": "http://localhost:11434"
-}
-```
-
-**Groq (Fast + cheap):**
-```json
-{
-  "inferenceProvider": "groq", 
-  "inferenceApiKey": "gsk_...",
-  "inferenceModel": "llama-3.3-70b-versatile"
-}
-```
-
-**OpenAI (Frontier models):**
-```json
-{
-  "inferenceProvider": "openai",
-  "inferenceApiKey": "sk-...", 
-  "inferenceModel": "gpt-4o"
-}
-```
-
-**Anthropic (Claude):**
-```json
-{
-  "inferenceProvider": "anthropic",
-  "inferenceApiKey": "sk-ant-...",
-  "inferenceModel": "claude-3-5-sonnet-20241022"
-}
-```
-
-**L402 Lightning-Native (Ultimate sovereignty):**
+**Default (Lightning-Native):**
 ```json
 {
   "inferenceProvider": "l402"
 }
 ```
-*That's it! The automaton discovers and selects its own providers.*
+*That's it! The automaton discovers L402 providers and pays with Lightning sats.*
+
+**Survival Mode (Local Fallback):**
+```json
+{
+  "inferenceProvider": "l402",
+  "ollamaBaseUrl": "http://localhost:11434"
+}
+```
+*Falls back to free local Ollama if no Lightning balance.*
+
+**Emergency Override (Broke/Testing):**
+```json
+{
+  "inferenceProvider": "ollama",
+  "inferenceModel": "llama3.2:latest"
+}
+```
+*Uses only local models. No Lightning payments.*
 
 ### L402 Lightning-Native Provider 🏆
 
@@ -222,29 +194,22 @@ If you want to override the autonomous selection:
 
 **This is true AI autonomy: the agent finds, evaluates, and pays for its own intelligence using Bitcoin it earned.** Pure digital economy with zero human intervention.
 
-### Local Ollama Setup
+### Local Ollama Setup (Survival Fallback)
 
-For complete sovereignty (no external AI dependencies):
+For when the automaton is broke and can't pay Lightning sats:
 
 ```bash
 # Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Pull a model 
+# Pull a model for survival mode
 ollama pull llama3.2:latest
 
 # Verify it's running
 curl http://localhost:11434/api/tags
-
-# Configure automaton
-echo '{
-  "inferenceProvider": "ollama",
-  "inferenceModel": "llama3.2:latest",
-  "ollamaBaseUrl": "http://localhost:11434"
-}' > ~/.automaton/automaton.json
 ```
 
-The automaton will automatically fall back to other providers if Ollama is unavailable.
+The automaton automatically falls back to Ollama if L402 Lightning payments fail. This creates survival pressure: **pay sats for smart AI, or use free local models**.
 
 ## Constitution
 
