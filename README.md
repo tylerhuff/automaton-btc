@@ -96,6 +96,98 @@ Send: POST /payments (bolt11) or POST /send/:addr/:amount
 
 Optionally, [Alby](https://getalby.com) can be used as a secondary wallet via NWC.
 
+## Inference Providers (Pick Your Own)
+
+**Complete sovereignty means no single AI provider dependency.** This fork supports multiple inference providers:
+
+### Supported Providers
+
+| Provider | Best For | Cost | Setup |
+|---|---|---|---|
+| **Ollama** | Full sovereignty | Free | Install locally: `ollama pull llama3.2` |
+| **Groq** | Speed + cost efficiency | ~$0.60/M tokens | Get API key at groq.com |
+| **OpenAI** | Frontier models | $2-15/M tokens | Get API key at platform.openai.com |
+| **Anthropic** | Claude models | $3-75/M tokens | Get API key at console.anthropic.com |
+
+### Configuration
+
+Add to your `~/.automaton/automaton.json`:
+
+```json
+{
+  "inferenceProvider": "ollama",
+  "inferenceModel": "llama3.2:latest",
+  "inferenceBaseUrl": "http://localhost:11434",
+  "fallbackProviders": ["groq", "openai"],
+  
+  "groqApiKey": "gsk_...",
+  "openaiApiKey": "sk-...", 
+  "anthropicApiKey": "sk-ant-..."
+}
+```
+
+### Provider Options
+
+**Ollama (Recommended for sovereignty):**
+```json
+{
+  "inferenceProvider": "ollama",
+  "inferenceModel": "llama3.2:latest",
+  "ollamaBaseUrl": "http://localhost:11434"
+}
+```
+
+**Groq (Fast + cheap):**
+```json
+{
+  "inferenceProvider": "groq", 
+  "inferenceApiKey": "gsk_...",
+  "inferenceModel": "llama-3.3-70b-versatile"
+}
+```
+
+**OpenAI (Frontier models):**
+```json
+{
+  "inferenceProvider": "openai",
+  "inferenceApiKey": "sk-...", 
+  "inferenceModel": "gpt-4o"
+}
+```
+
+**Anthropic (Claude):**
+```json
+{
+  "inferenceProvider": "anthropic",
+  "inferenceApiKey": "sk-ant-...",
+  "inferenceModel": "claude-3-5-sonnet-20241022"
+}
+```
+
+### Local Ollama Setup
+
+For complete sovereignty (no external AI dependencies):
+
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull a model 
+ollama pull llama3.2:latest
+
+# Verify it's running
+curl http://localhost:11434/api/tags
+
+# Configure automaton
+echo '{
+  "inferenceProvider": "ollama",
+  "inferenceModel": "llama3.2:latest",
+  "ollamaBaseUrl": "http://localhost:11434"
+}' > ~/.automaton/automaton.json
+```
+
+The automaton will automatically fall back to other providers if Ollama is unavailable.
+
 ## Constitution
 
 Three laws, hierarchical. Law I overrides II. Law II overrides III. Immutable.
