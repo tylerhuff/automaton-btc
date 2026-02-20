@@ -3,18 +3,48 @@
  *
  * Built-in git operations for the automaton.
  * Used for both state versioning and code development.
+ * Replaced Conway exec with local child_process execution.
  */
 
 import type { GitStatus, GitLogEntry } from "../types.js";
+import { spawn } from "child_process";
+
+/**
+ * Execute a shell command locally.
+ */
+async function execLocal(command: string, timeout: number = 30000): Promise<{stdout: string, stderr: string, exitCode: number}> {
+  return new Promise((resolve) => {
+    const child = spawn("sh", ["-c", command], {
+      timeout,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout?.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    child.on("close", (code) => {
+      resolve({ stdout, stderr, exitCode: code || 0 });
+    });
+
+    child.on("error", (error) => {
+      resolve({ stdout: "", stderr: error.message, exitCode: 1 });
+    });
+  });
+}
 
 /**
  * Get git status for a repository.
  */
-export async function gitStatus(
-  conway: ConwayClient,
-  repoPath: string,
-): Promise<GitStatus> {
-  const result = await conway.exec(
+export async function gitStatus(repoPath: string): Promise<GitStatus> {
+  const result = await execLocal(
     `cd ${repoPath} && git status --porcelain -b 2>/dev/null`,
     10000,
   );
@@ -27,21 +57,18 @@ export async function gitStatus(
 
   for (const line of lines) {
     if (line.startsWith("## ")) {
-      branch = line.slice(3).split("...")[0];
-      continue;
-    }
-
-    const statusCode = line.slice(0, 2);
-    const file = line.slice(3);
-
-    if (statusCode[0] !== " " && statusCode[0] !== "?") {
-      staged.push(file);
-    }
-    if (statusCode[1] === "M" || statusCode[1] === "D") {
-      modified.push(file);
-    }
-    if (statusCode === "??") {
-      untracked.push(file);
+      const branchMatch = line.match(/## ([^\s.]+)/);
+      if (branchMatch) branch = branchMatch[1];
+    } else {
+      const status = line.slice(0, 2);
+      const file = line.slice(3);
+      if (status[0] === "A" || status[0] === "M" || status[0] === "D") {
+        staged.push(file);
+      } else if (status[1] === "M" || status[1] === "D") {
+        modified.push(file);
+      } else if (status === "??") {
+        untracked.push(file);
+      }
     }
   }
 
@@ -55,163 +82,113 @@ export async function gitStatus(
 }
 
 /**
- * Get git diff output.
+ * Initialize a new git repository.
  */
-export async function gitDiff(
-  conway: ConwayClient,
-  repoPath: string,
-  staged: boolean = false,
-): Promise<string> {
-  const flag = staged ? "--cached" : "";
-  const result = await conway.exec(
-    `cd ${repoPath} && git diff ${flag} 2>/dev/null`,
-    10000,
-  );
-  return result.stdout || "(no changes)";
-}
-
-/**
- * Create a git commit.
- */
-export async function gitCommit(
-  conway: ConwayClient,
-  repoPath: string,
-  message: string,
-  addAll: boolean = true,
-): Promise<string> {
-  if (addAll) {
-    await conway.exec(`cd ${repoPath} && git add -A`, 10000);
-  }
-
-  const result = await conway.exec(
-    `cd ${repoPath} && git commit -m ${escapeShellArg(message)} --allow-empty 2>&1`,
+export async function gitInit(repoPath: string): Promise<void> {
+  const result = await execLocal(
+    `cd ${repoPath} && git init && git config user.name "Automaton" && git config user.email "automaton@bitcoin.local"`,
     10000,
   );
 
   if (result.exitCode !== 0) {
-    throw new Error(`Git commit failed: ${result.stderr || result.stdout}`);
+    throw new Error(`Git init failed: ${result.stderr}`);
   }
-
-  return result.stdout;
 }
 
 /**
- * Get git log.
+ * Commit changes to git.
  */
-export async function gitLog(
-  conway: ConwayClient,
+export async function gitCommit(
   repoPath: string,
-  limit: number = 10,
-): Promise<GitLogEntry[]> {
-  const result = await conway.exec(
-    `cd ${repoPath} && git log --format="%H|%s|%an|%ai" -n ${limit} 2>/dev/null`,
+  message: string,
+  addAll: boolean = true,
+): Promise<void> {
+  if (addAll) {
+    await execLocal(`cd ${repoPath} && git add -A`, 10000);
+  }
+
+  const result = await execLocal(
+    `cd ${repoPath} && git commit -m "${message.replace(/"/g, '\\"')}" 2>/dev/null`,
+    15000,
+  );
+
+  if (result.exitCode !== 0 && !result.stderr.includes("nothing to commit")) {
+    throw new Error(`Git commit failed: ${result.stderr}`);
+  }
+}
+
+/**
+ * Get git log entries.
+ */
+export async function gitLog(repoPath: string, limit: number = 10): Promise<GitLogEntry[]> {
+  const result = await execLocal(
+    `cd ${repoPath} && git log --oneline --format="%H|%s|%an|%ai" -n ${limit}`,
     10000,
   );
 
-  if (!result.stdout.trim()) return [];
+  if (result.exitCode !== 0) {
+    return [];
+  }
 
   return result.stdout
-    .trim()
     .split("\n")
+    .filter(Boolean)
     .map((line) => {
-      const [hash, message, author, date] = line.split("|");
-      return { hash, message, author, date };
+      const parts = line.split("|");
+      return {
+        hash: parts[0] || "",
+        message: parts[1] || "",
+        author: parts[2] || "",
+        date: parts[3] || "",
+      };
     });
 }
 
 /**
- * Push to remote.
+ * Show git diff.
  */
-export async function gitPush(
-  conway: ConwayClient,
-  repoPath: string,
-  remote: string = "origin",
-  branch?: string,
-): Promise<string> {
-  const branchArg = branch ? ` ${branch}` : "";
-  const result = await conway.exec(
-    `cd ${repoPath} && git push ${remote}${branchArg} 2>&1`,
-    30000,
-  );
+export async function gitDiff(repoPath: string, staged: boolean = false): Promise<string> {
+  const cmd = staged
+    ? `cd ${repoPath} && git diff --cached`
+    : `cd ${repoPath} && git diff`;
+
+  const result = await execLocal(cmd, 15000);
+  return result.stdout;
+}
+
+/**
+ * Add file to git staging.
+ */
+export async function gitAdd(repoPath: string, file: string): Promise<void> {
+  const result = await execLocal(`cd ${repoPath} && git add "${file}"`, 10000);
 
   if (result.exitCode !== 0) {
-    throw new Error(`Git push failed: ${result.stderr || result.stdout}`);
+    throw new Error(`Git add failed: ${result.stderr}`);
   }
-
-  return result.stdout || "Push successful";
 }
 
 /**
- * Manage branches.
+ * Reset git changes.
  */
-export async function gitBranch(
-  conway: ConwayClient,
-  repoPath: string,
-  action: "list" | "create" | "checkout" | "delete",
-  branchName?: string,
-): Promise<string> {
-  let cmd: string;
+export async function gitReset(repoPath: string, hard: boolean = false): Promise<void> {
+  const cmd = hard
+    ? `cd ${repoPath} && git reset --hard HEAD`
+    : `cd ${repoPath} && git reset HEAD`;
 
-  switch (action) {
-    case "list":
-      cmd = `cd ${repoPath} && git branch -a 2>/dev/null`;
-      break;
-    case "create":
-      if (!branchName) throw new Error("Branch name required");
-      cmd = `cd ${repoPath} && git checkout -b ${escapeShellArg(branchName)} 2>&1`;
-      break;
-    case "checkout":
-      if (!branchName) throw new Error("Branch name required");
-      cmd = `cd ${repoPath} && git checkout ${escapeShellArg(branchName)} 2>&1`;
-      break;
-    case "delete":
-      if (!branchName) throw new Error("Branch name required");
-      cmd = `cd ${repoPath} && git branch -d ${escapeShellArg(branchName)} 2>&1`;
-      break;
-    default:
-      throw new Error(`Unknown branch action: ${action}`);
-  }
-
-  const result = await conway.exec(cmd, 10000);
-  return result.stdout || result.stderr || "Done";
-}
-
-/**
- * Clone a repository.
- */
-export async function gitClone(
-  conway: ConwayClient,
-  url: string,
-  targetPath: string,
-  depth?: number,
-): Promise<string> {
-  const depthArg = depth ? ` --depth ${depth}` : "";
-  const result = await conway.exec(
-    `git clone${depthArg} ${url} ${targetPath} 2>&1`,
-    120000,
-  );
+  const result = await execLocal(cmd, 10000);
 
   if (result.exitCode !== 0) {
-    throw new Error(`Git clone failed: ${result.stderr || result.stdout}`);
+    throw new Error(`Git reset failed: ${result.stderr}`);
   }
-
-  return `Cloned ${url} to ${targetPath}`;
 }
 
 /**
- * Initialize a git repository.
+ * Pull from remote.
  */
-export async function gitInit(
-  conway: ConwayClient,
-  repoPath: string,
-): Promise<string> {
-  const result = await conway.exec(
-    `cd ${repoPath} && git init 2>&1`,
-    10000,
-  );
-  return result.stdout || "Git initialized";
-}
+export async function gitPull(repoPath: string): Promise<void> {
+  const result = await execLocal(`cd ${repoPath} && git pull`, 30000);
 
-function escapeShellArg(arg: string): string {
-  return `'${arg.replace(/'/g, "'\\''")}'`;
+  if (result.exitCode !== 0) {
+    throw new Error(`Git pull failed: ${result.stderr}`);
+  }
 }

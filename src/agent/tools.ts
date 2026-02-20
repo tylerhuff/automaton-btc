@@ -536,18 +536,16 @@ export async function executeTool(
 
   try {
     // Policy engine check (if available)
-    if (policyEngine && tool.riskLevel !== "safe") {
+    if (policyEngine && tool.riskLevel !== "safe" && trackingContext) {
       const policyRequest: PolicyRequest = {
-        tool: name,
+        tool: tool,
         args,
-        riskLevel: tool.riskLevel,
-        category: tool.category,
         context: context,
-        turnContext: trackingContext ? {
+        turnContext: {
           inputSource: trackingContext.inputSource,
           turnToolCallCount: trackingContext.turnToolCallCount,
           sessionSpend: trackingContext.sessionSpend,
-        } : undefined,
+        },
       };
 
       const policyResult = await policyEngine.evaluate(policyRequest);
@@ -556,8 +554,8 @@ export async function executeTool(
           id: ulid(),
           name,
           arguments: args,
-          result: `Policy denied: ${policyResult.message}`,
-          error: `Policy violation: ${policyResult.message}`,
+          result: `Policy denied: ${policyResult.humanMessage}`,
+          error: `Policy violation: ${policyResult.humanMessage}`,
           durationMs: 0,
         };
       }
@@ -569,21 +567,19 @@ export async function executeTool(
     return {
       id: ulid(),
       name,
-      args,
-      result: sanitizeToolResult(result, name),
-      timestamp: new Date().toISOString(),
-      costCents: 0, // No Conway credits cost
+      arguments: args,
+      result: sanitizeToolResult(result),
+      durationMs: 0,
     };
   } catch (error) {
     logger.error(`Tool ${name} execution failed`, error instanceof Error ? error : undefined);
     return {
       id: ulid(),
       name,
-      args,
+      arguments: args,
       result: `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString(),
-      costCents: 0,
+      durationMs: 0,
     };
   }
 }

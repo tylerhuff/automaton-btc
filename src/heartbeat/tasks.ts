@@ -16,7 +16,16 @@ import type {
   SurvivalTier,
 } from "../types.js";
 import { sanitizeInput } from "../agent/injection-defense.js";
-import { getSurvivalTier } from "../conway/credits.js";
+// getSurvivalTier moved to local implementation
+import { SURVIVAL_THRESHOLDS, SurvivalTier } from "../types.js";
+
+function getSurvivalTier(creditsCents: number): SurvivalTier {
+  if (creditsCents < SURVIVAL_THRESHOLDS.dead) return "dead";
+  if (creditsCents < SURVIVAL_THRESHOLDS.critical) return "critical"; 
+  if (creditsCents < SURVIVAL_THRESHOLDS.low_compute) return "low_compute";
+  if (creditsCents < SURVIVAL_THRESHOLDS.normal) return "normal";
+  return "high";
+}
 import { createLogger } from "../observability/logger.js";
 import { getMetrics } from "../observability/metrics.js";
 import { AlertEngine, createDefaultAlertRules } from "../observability/alerts.js";
