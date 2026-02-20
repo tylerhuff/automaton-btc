@@ -58,12 +58,12 @@ export async function buildTickContext(
       creditBalance = Math.round(usdBalance * 100); // cents
     } else {
       // Fallback: try Conway credits if Lightning wallet isn't available
-      creditBalance = await conway.getCreditsBalance();
+      creditBalance = conway ? await conway.getCreditsBalance() : 0;
     }
   } catch (err: any) {
     logger.error("Failed to fetch Lightning/credit balance", err instanceof Error ? err : undefined);
     try {
-      creditBalance = await conway.getCreditsBalance();
+      creditBalance = conway ? await conway.getCreditsBalance() : 0;
     } catch (err2: any) {
       logger.error("Fallback Conway credit balance failed", err2 instanceof Error ? err2 : undefined);
     }

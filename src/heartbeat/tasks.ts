@@ -288,6 +288,11 @@ export const BUILTIN_TASKS: Record<string, HeartbeatTaskFn> = {
   // === Phase 2.3: Model Registry Refresh ===
   refresh_models: async (_ctx: TickContext, taskCtx: HeartbeatLegacyContext) => {
     try {
+      if (!taskCtx.conway) {
+        logger.warn("Conway client not available - skipping model refresh");
+        return { shouldWake: false };
+      }
+      
       const models = await taskCtx.conway.listModels();
       if (models.length > 0) {
         const { ModelRegistry } = await import("../inference/registry.js");
@@ -351,6 +356,11 @@ export const BUILTIN_TASKS: Record<string, HeartbeatTaskFn> = {
   health_check: async (_ctx: TickContext, taskCtx: HeartbeatLegacyContext) => {
     // Check that the sandbox is healthy
     try {
+      if (!taskCtx.conway) {
+        logger.warn("Conway client not available - skipping health check");
+        return { shouldWake: false };
+      }
+      
       const result = await taskCtx.conway.exec("echo alive", 5000);
       if (result.exitCode !== 0) {
         // Only wake on first failure, not repeated failures

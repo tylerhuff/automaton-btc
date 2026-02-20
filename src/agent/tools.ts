@@ -604,6 +604,11 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
       },
       execute: async (args, ctx) => {
         const pkg = args.package as string;
+        
+        if (!ctx.conway) {
+          return "Conway client not available - cannot install npm packages";
+        }
+        
         const result = await ctx.conway.exec(
           `npm install -g ${pkg}`,
           60000,

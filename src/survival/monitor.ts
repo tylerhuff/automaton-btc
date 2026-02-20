@@ -50,7 +50,7 @@ export async function checkResources(
   } catch {
     // If Lightning balance check fails, fall back to Conway credits as a last resort
     try {
-      creditsCents = await conway.getCreditsBalance();
+      creditsCents = conway ? await conway.getCreditsBalance() : 0;
     } catch {}
   }
 
@@ -63,8 +63,12 @@ export async function checkResources(
   // Check sandbox health
   let sandboxHealthy = true;
   try {
-    const result = await conway.exec("echo ok", 5000);
-    sandboxHealthy = result.exitCode === 0;
+    if (conway) {
+      const result = await conway.exec("echo ok", 5000);
+      sandboxHealthy = result.exitCode === 0;
+    } else {
+      sandboxHealthy = false; // No Conway client means we can't check sandbox health
+    }
   } catch {
     sandboxHealthy = false;
   }
