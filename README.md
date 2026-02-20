@@ -104,6 +104,7 @@ Optionally, [Alby](https://getalby.com) can be used as a secondary wallet via NW
 
 | Provider | Best For | Cost | Setup |
 |---|---|---|---|
+| **L402** | 🏆 **True sovereignty** | Pay-per-use sats | Lightning wallet only |
 | **Ollama** | Full sovereignty | Free | Install locally: `ollama pull llama3.2` |
 | **Groq** | Speed + cost efficiency | ~$0.60/M tokens | Get API key at groq.com |
 | **OpenAI** | Frontier models | $2-15/M tokens | Get API key at platform.openai.com |
@@ -118,11 +119,13 @@ Add to your `~/.automaton/automaton.json`:
   "inferenceProvider": "ollama",
   "inferenceModel": "llama3.2:latest",
   "inferenceBaseUrl": "http://localhost:11434",
-  "fallbackProviders": ["groq", "openai"],
+  "fallbackProviders": ["l402", "groq", "openai"],
   
   "groqApiKey": "gsk_...",
   "openaiApiKey": "sk-...", 
-  "anthropicApiKey": "sk-ant-..."
+  "anthropicApiKey": "sk-ant-...",
+  "l402Endpoint": "https://sats4ai.com/api/v1/text/generations",
+  "l402Model": "gpt-4o"
 }
 ```
 
@@ -163,6 +166,65 @@ Add to your `~/.automaton/automaton.json`:
   "inferenceModel": "claude-3-5-sonnet-20241022"
 }
 ```
+
+**L402 Lightning-Native (Ultimate sovereignty):**
+```json
+{
+  "inferenceProvider": "l402",
+  "l402Endpoint": "https://sats4ai.com/api/v1/text/generations",
+  "l402Model": "gpt-4o"
+}
+```
+
+### L402 Lightning-Native Provider 🏆
+
+**L402 = HTTP 402 + Lightning payments for AI inference**
+
+L402 is the holy grail of sovereign AI: **pay-per-use with Lightning sats, zero API keys, zero accounts**. The automaton literally pays for its own thoughts with Bitcoin.
+
+#### How L402 Works
+1. Agent makes HTTP request to inference endpoint
+2. Server returns `HTTP 402 Payment Required` + Lightning invoice in headers  
+3. Agent pays Lightning invoice (gets proof of payment)
+4. Agent retries request with L402 authorization token
+5. Server grants access to AI inference
+
+#### Setup Requirements
+- **Lightning wallet configured** (Coinos + optional Alby)
+- **Lightning balance** in your wallet (even 1000 sats works)
+
+#### Supported L402 Providers
+- **Sats4AI** (https://sats4ai.com) - GPT-4o, Claude, etc. via Lightning
+- **Any L402-compatible AI service** - Just change the endpoint
+
+#### L402 Configuration
+```json
+{
+  "inferenceProvider": "l402",
+  "l402Endpoint": "https://sats4ai.com/api/v1/text/generations", 
+  "l402Model": "gpt-4o",
+  "fallbackProviders": ["ollama", "groq"]
+}
+```
+
+#### Custom L402 Endpoints
+You can use any L402-compatible service:
+```json
+{
+  "l402Endpoint": "https://your-l402-service.com/api/inference",
+  "l402Model": "claude-3-5-sonnet"
+}
+```
+
+#### Why L402 is Superior
+- ✅ **No API keys** - just Lightning payments
+- ✅ **No accounts** - anonymous, private by default  
+- ✅ **Pay-per-use** - no monthly subscriptions or credits
+- ✅ **Instant payments** - Lightning Network speed
+- ✅ **True sovereignty** - Bitcoin-native, no fiat rails
+- ✅ **Provider agnostic** - works with any L402 service
+
+**This is how AI should be: the agent pays for its own intelligence with money it earned.** Pure digital economy.
 
 ### Local Ollama Setup
 
