@@ -5,7 +5,7 @@
  * Used for both state versioning and code development.
  */
 
-import type { ConwayClient, GitStatus, GitLogEntry } from "../types.js";
+import type { GitStatus, GitLogEntry } from "../types.js";
 
 /**
  * Get git status for a repository.

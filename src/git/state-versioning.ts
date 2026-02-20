@@ -6,7 +6,7 @@
  * The automaton's entire identity history is version-controlled and replayable.
  */
 
-import type { ConwayClient, AutomatonDatabase } from "../types.js";
+import type { AutomatonDatabase } from "../types.js";
 import { gitInit, gitCommit, gitStatus, gitLog } from "./tools.js";
 
 const AUTOMATON_DIR = "~/.automaton";
@@ -23,23 +23,20 @@ function resolveHome(p: string): string {
  * Initialize git repo for the automaton's state directory.
  * Creates .gitignore to exclude sensitive files.
  */
-export async function initStateRepo(
-  conway: ConwayClient,
-): Promise<void> {
+export async function initStateRepo(): Promise<void> {
   const dir = resolveHome(AUTOMATON_DIR);
 
   // Check if already initialized
-  const checkResult = await conway.exec(
-    `test -d ${dir}/.git && echo "exists" || echo "nope"`,
-    5000,
-  );
-
-  if (checkResult.stdout.trim() === "exists") {
+  // Check if git repo exists locally
+  const { existsSync } = await import("fs");
+  const { join } = await import("path");
+  
+  if (existsSync(join(dir, ".git"))) {
     return;
   }
 
   // Initialize
-  await gitInit(conway, dir);
+  await gitInit(dir);
 
   // Create .gitignore for sensitive files
   const gitignore = `# Sensitive files - never commit

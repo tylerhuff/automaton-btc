@@ -1,7 +1,7 @@
 /**
- * Conway Automaton - Type Definitions
+ * Bitcoin-Native Automaton - Type Definitions
  *
- * All shared interfaces for the sovereign AI agent runtime.
+ * All shared interfaces for the Lightning-powered autonomous AI agent.
  */
 
 import type { PrivateKeyAccount, Address } from "viem";
@@ -220,7 +220,6 @@ export interface HeartbeatPingPayload {
   usdcBalance: number;
   uptimeSeconds: number;
   version: string;
-  sandboxId: string;
   timestamp: string;
 }
 
@@ -368,7 +367,6 @@ export interface ExecResult {
 export interface PortInfo {
   port: number;
   publicUrl: string;
-  sandboxId: string;
 }
 
 export interface CreateSandboxOptions {
@@ -774,7 +772,6 @@ export interface ChildAutomaton {
   id: string;
   name: string;
   address: Address;
-  sandboxId: string;
   genesisPrompt: string;
   creatorMessage?: string;
   fundedAmountCents: number;
@@ -791,7 +788,7 @@ export type ChildStatus =
   | "unknown"
   // Phase 3.1 lifecycle states
   | "requested"
-  | "sandbox_created"
+  | "environment_ready"
   | "runtime_ready"
   | "wallet_verified"
   | "funded"
@@ -1221,7 +1218,7 @@ export const DEFAULT_MODEL_STRATEGY_CONFIG: ModelStrategyConfig = {
 
 export type ChildLifecycleState =
   | "requested"
-  | "sandbox_created"
+  | "environment_ready"
   | "runtime_ready"
   | "wallet_verified"
   | "funded"
@@ -1233,8 +1230,8 @@ export type ChildLifecycleState =
   | "cleaned_up";
 
 export const VALID_TRANSITIONS: Record<ChildLifecycleState, ChildLifecycleState[]> = {
-  requested: ["sandbox_created", "failed"],
-  sandbox_created: ["runtime_ready", "failed"],
+  requested: ["environment_ready", "failed"],
+  environment_ready: ["runtime_ready", "failed"],
   runtime_ready: ["wallet_verified", "failed"],
   wallet_verified: ["funded", "failed"],
   funded: ["starting", "failed"],

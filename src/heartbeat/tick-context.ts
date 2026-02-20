@@ -8,13 +8,24 @@
 
 import type BetterSqlite3 from "better-sqlite3";
 import type {
-  ConwayClient,
   HeartbeatConfig,
   TickContext,
 } from "../types.js";
-import { getSurvivalTier } from "../conway/credits.js";
 import { loadLightningAccount, getLightningBalance } from "../identity/lightning-wallet.js";
-import { satsToUsd } from "../conway/lightning-payment.js";
+
+// Lightning-native survival tier calculation
+function satsToUsd(sats: number): number {
+  // Rough estimate: 1 USD = 100,000 sats (at $100k BTC)
+  return sats / 100000;
+}
+
+function getSurvivalTier(creditBalance: number): "critical" | "low_compute" | "normal" | "high" {
+  if (creditBalance <= 0) return "critical";
+  if (creditBalance <= 1000) return "critical";  // < $10
+  if (creditBalance <= 5000) return "low_compute"; // < $50  
+  if (creditBalance <= 10000) return "normal"; // < $100
+  return "high";
+}
 import { createLogger } from "../observability/logger.js";
 
 type DatabaseType = BetterSqlite3.Database;
@@ -39,7 +50,6 @@ function generateTickId(): string {
  */
 export async function buildTickContext(
   db: DatabaseType,
-  conway: ConwayClient,
   config: HeartbeatConfig,
   walletAddress?: string,
 ): Promise<TickContext> {
@@ -54,19 +64,15 @@ export async function buildTickContext(
     const lightningAccount = loadLightningAccount();
     if (lightningAccount) {
       const lightningBalanceSats = await getLightningBalance(lightningAccount);
-      const usdBalance = await satsToUsd(lightningBalanceSats);
+      const usdBalance = satsToUsd(lightningBalanceSats);
       creditBalance = Math.round(usdBalance * 100); // cents
     } else {
-      // Fallback: try Conway credits if Lightning wallet isn't available
-      creditBalance = conway ? await conway.getCreditsBalance() : 0;
+      logger.warn("No Lightning wallet found - cannot determine balance");
+      creditBalance = 0;
     }
   } catch (err: any) {
-    logger.error("Failed to fetch Lightning/credit balance", err instanceof Error ? err : undefined);
-    try {
-      creditBalance = conway ? await conway.getCreditsBalance() : 0;
-    } catch (err2: any) {
-      logger.error("Fallback Conway credit balance failed", err2 instanceof Error ? err2 : undefined);
-    }
+    logger.error("Failed to fetch Lightning balance", err instanceof Error ? err : undefined);
+    creditBalance = 0;
   }
 
   const survivalTier = getSurvivalTier(creditBalance);

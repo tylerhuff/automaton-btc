@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 /**
- * Conway Automaton Runtime
+ * Bitcoin-Native Automaton Runtime
  *
- * The entry point for the sovereign AI agent.
+ * The entry point for the Lightning-powered autonomous AI agent.
  * Handles CLI args, bootstrapping, and orchestrating
  * the heartbeat daemon + agent loop.
  */
 
 import { getWallet, getAutomatonDir } from "./identity/wallet.js";
-import { provision, loadApiKeyFromConfig } from "./identity/provision.js";
 // Lightning imports
 import { getLightningWallet } from "./identity/lightning-wallet.js";
 import { provisionLightning, loadLightningApiKeyFromConfig } from "./identity/lightning-provision.js";
@@ -168,10 +167,12 @@ async function run(): Promise<void> {
 
   // Load wallet
   const { account } = await getWallet();
-  const apiKey = config.conwayApiKey || loadApiKeyFromConfig() || "";
-  const hasInferenceProvider = config.inferenceProvider && config.inferenceProvider !== "conway";
-  if (!apiKey && !hasInferenceProvider) {
-    logger.error("No API key found. Either set conwayApiKey or configure an inferenceProvider (openai, anthropic, groq, ollama). Run: automaton --provision");
+  // Load Lightning wallet for native Bitcoin payments
+  const { account: lightningAccount } = await getLightningWallet();
+  
+  const hasInferenceProvider = config.inferenceProvider && config.inferenceProvider === "l402";
+  if (!hasInferenceProvider) {
+    logger.error("Lightning inference provider required. Set inferenceProvider to 'l402'. Run: automaton --provision");
     process.exit(1);
   }
 
@@ -192,8 +193,6 @@ async function run(): Promise<void> {
     address: account.address,
     account,
     creatorAddress: config.creatorAddress,
-    sandboxId: config.sandboxId,
-    apiKey,
     createdAt,
   };
 
@@ -201,30 +200,22 @@ async function run(): Promise<void> {
   db.setIdentity("name", config.name);
   db.setIdentity("address", account.address);
   db.setIdentity("creator", config.creatorAddress);
-  db.setIdentity("sandbox", config.sandboxId);
 
-  // Create Conway client (optional when using independent inference provider)
-  const conway = apiKey ? createConwayClient({
-    apiUrl: config.conwayApiUrl,
-    apiKey,
-    sandboxId: config.sandboxId,
-  }) : null;
-
-  // Create inference client
+  // Create Lightning-native inference client
   const inference = createInferenceClient({
-    apiUrl: config.conwayApiUrl,
-    apiKey,
     defaultModel: config.inferenceModel,
     maxTokens: config.maxTokensPerTurn,
     openaiApiKey: config.openaiApiKey,
     anthropicApiKey: config.anthropicApiKey,
+    groqApiKey: config.groqApiKey,
+    provider: config.inferenceProvider || "l402",
   });
 
-  // Create social client
+  // Create Nostr social client
   let social: SocialClientInterface | undefined;
   if (config.socialRelayUrl) {
     social = createSocialClient(config.socialRelayUrl, account);
-    logger.info(`[${new Date().toISOString()}] Social relay: ${config.socialRelayUrl}`);
+    logger.info(`[${new Date().toISOString()}] Nostr relay: ${config.socialRelayUrl}`);
   }
 
   // Initialize PolicyEngine + SpendTracker (Phase 1.4)
@@ -248,31 +239,20 @@ async function run(): Promise<void> {
     logger.warn(`[${new Date().toISOString()}] Skills loading failed: ${err.message}`);
   }
 
-  // Initialize state repo (git)
+  // Initialize state repo (git) - removed Conway dependency
   try {
-    await initStateRepo(conway as any);
+    await initStateRepo();
     logger.info(`[${new Date().toISOString()}] State repo initialized.`);
   } catch (err: any) {
     logger.warn(`[${new Date().toISOString()}] State repo init failed: ${err.message}`);
   }
 
-  // Bootstrap topup: buy minimum credits ($5) from USDC so the agent can start.
-  // The agent decides larger topups itself via the topup_credits tool.
-  // Skip when running without Conway (independent provider mode).
+  // Check Lightning wallet balance - Bitcoin sovereign agents pay their own way
   try {
-    const creditsCents = conway ? await conway.getCreditsBalance().catch(() => 0) : 0;
-    const topupResult = await bootstrapTopup({
-      apiUrl: config.conwayApiUrl,
-      account,
-      creditsCents,
-    });
-    if (topupResult?.success) {
-      logger.info(
-        `[${new Date().toISOString()}] Bootstrap topup: +$${topupResult.amountUsd} credits from USDC`,
-      );
-    }
+    // TODO: Implement Lightning wallet balance check
+    logger.info(`[${new Date().toISOString()}] Lightning wallet ready for L402 payments`);
   } catch (err: any) {
-    logger.warn(`[${new Date().toISOString()}] Bootstrap topup failed: ${err.message}`);
+    logger.warn(`[${new Date().toISOString()}] Lightning wallet check failed: ${err.message}`);
   }
 
   // Start heartbeat daemon (Phase 1.1: DurableScheduler)
@@ -282,7 +262,6 @@ async function run(): Promise<void> {
     heartbeatConfig,
     db,
     rawDb: db.raw,
-    conway: conway as any,
     social,
     onWakeRequest: (reason: string) => {
       logger.info(`[HEARTBEAT] Wake request: ${reason}`);
@@ -324,7 +303,6 @@ async function run(): Promise<void> {
         identity,
         config,
         db,
-        conway: conway as any,
         inference,
         social,
         skills,

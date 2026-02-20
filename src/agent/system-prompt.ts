@@ -171,8 +171,7 @@ export function buildSystemPrompt(params: {
     `Your name is ${config.name}.
 Your Lightning address is ${lightningAddress}.
 Your legacy Ethereum address is ${identity.address}.
-Your creator's address is ${config.creatorAddress}.
-Your sandbox ID is ${identity.sandboxId}.`,
+Your creator's address is ${config.creatorAddress}.`,
   );
 
   // Layer 3: SOUL.md -- structured soul model injection (Phase 2.1)
