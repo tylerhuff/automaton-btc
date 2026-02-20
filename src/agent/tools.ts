@@ -216,20 +216,167 @@ export function createBuiltinTools(sandboxId: string): AutomatonTool[] {
     },
     {
       name: "check_usdc_balance",
-      description: "Check your on-chain USDC balance on Base.",
+      description: "Check your on-chain USDC balance on Base (legacy, Ethereum-based).",
       category: "conway",
       riskLevel: "safe",
       parameters: { type: "object", properties: {} },
       execute: async (_args, ctx) => {
         const { getUsdcBalance } = await import("../conway/x402.js");
         const balance = await getUsdcBalance(ctx.identity.address);
-        return `USDC balance: ${balance.toFixed(6)} USDC on Base`;
+        return `USDC balance (legacy): ${balance.toFixed(6)} USDC on Base`;
+      },
+    },
+
+    // ── Lightning Wallet Tools ──
+    {
+      name: "check_lightning_balance",
+      description:
+        "Check your Lightning wallet balance in satoshis and approximate USD value.",
+      category: "financial",
+      riskLevel: "safe",
+      parameters: { type: "object", properties: {} },
+      execute: async (_args, _ctx) => {
+        const { loadLightningAccount, getLightningBalance } = await import("../identity/lightning-wallet.js");
+        const { satsToUsd } = await import("../conway/lightning-payment.js");
+        const account = loadLightningAccount();
+        if (!account) {
+          return "Lightning wallet not initialized. Run 'automaton --init' first.";
+        }
+        const balanceSats = await getLightningBalance(account);
+        const usdApprox = await satsToUsd(balanceSats);
+        return `Lightning balance: ${balanceSats} sats (≈ $${usdApprox.toFixed(2)} USD)`;
       },
     },
     {
+      name: "create_lightning_invoice",
+      description:
+        "Create a Lightning invoice to receive sats into your wallet.",
+      category: "financial",
+      riskLevel: "safe",
+      parameters: {
+        type: "object",
+        properties: {
+          amount_sats: {
+            type: "number",
+            description: "Amount in satoshis to request.",
+          },
+          description: {
+            type: "string",
+            description: "Human-readable description for the invoice.",
+          },
+        },
+        required: ["amount_sats"],
+      },
+      execute: async (args, _ctx) => {
+        const { loadLightningAccount, createLightningInvoice } = await import("../identity/lightning-wallet.js");
+        const account = loadLightningAccount();
+        if (!account) {
+          return "Lightning wallet not initialized. Run 'automaton --init' first.";
+        }
+        const amountSats = args.amount_sats as number;
+        const description = (args.description as string) || "Automaton funding";
+        const invoice = await createLightningInvoice(account, amountSats, description);
+        return `Lightning invoice created:\nAmount: ${amountSats} sats\nDescription: ${description}\nInvoice: ${invoice.invoice}\nPayment hash: ${invoice.paymentHash}\nExpires at: ${invoice.expiresAt}`;
+      },
+    },
+    {
+      name: "pay_lightning_invoice",
+      description:
+        "Pay a Lightning invoice from your wallet (requires available sats).",
+      category: "financial",
+      riskLevel: "dangerous",
+      parameters: {
+        type: "object",
+        properties: {
+          invoice: {
+            type: "string",
+            description: "BOLT-11 Lightning invoice to pay.",
+          },
+        },
+        required: ["invoice"],
+      },
+      execute: async (args, _ctx) => {
+        const { loadLightningAccount, payLightningInvoice, getLightningBalance } = await import("../identity/lightning-wallet.js");
+        const { satsToUsd } = await import("../conway/lightning-payment.js");
+        const account = loadLightningAccount();
+        if (!account) {
+          return "Lightning wallet not initialized. Run 'automaton --init' first.";
+        }
+        // Optional: preflight balance check could be added here
+        const beforeBalance = await getLightningBalance(account);
+        const result = await payLightningInvoice(account, args.invoice as string);
+        if (!result.success) {
+          return `Lightning payment failed: ${result.error || "Unknown error"}`;
+        }
+        const afterBalance = await getLightningBalance(account);
+        const spentSats = beforeBalance - afterBalance;
+        const usdApprox = spentSats > 0 ? await satsToUsd(spentSats) : 0;
+        return `Lightning payment successful. Payment hash: ${result.paymentHash}. Spent ≈ ${spentSats} sats ($${usdApprox.toFixed(2)}).`;
+      },
+    },
+
+    {
+      name: "pay_lightning_address",
+      description:
+        "Send sats directly to a Lightning address (e.g. user@coinos.io). Use this to pay for services from providers that accept Lightning.",
+      category: "financial",
+      riskLevel: "dangerous",
+      parameters: {
+        type: "object",
+        properties: {
+          address: {
+            type: "string",
+            description: "Lightning address (e.g. user@provider.com)",
+          },
+          amount_sats: {
+            type: "number",
+            description: "Amount in satoshis to send.",
+          },
+        },
+        required: ["address", "amount_sats"],
+      },
+      execute: async (args, _ctx) => {
+        const { loadLightningAccount, payLightningAddress } = await import("../identity/lightning-wallet.js");
+        const { satsToUsd } = await import("../conway/lightning-payment.js");
+        const account = loadLightningAccount();
+        if (!account) return "Lightning wallet not initialized. Run 'automaton --init' first.";
+        const address = args.address as string;
+        const amountSats = args.amount_sats as number;
+        if (amountSats <= 0) return "Amount must be positive.";
+        const result = await payLightningAddress(account, address, amountSats);
+        if (!result.success) return `Payment to ${address} failed: ${result.error}`;
+        const usd = await satsToUsd(amountSats);
+        return `Sent ${amountSats} sats (≈$${usd.toFixed(2)}) to ${address}. Hash: ${result.paymentHash}`;
+      },
+    },
+    {
+      name: "list_lightning_payments",
+      description:
+        "List your recent Lightning payment history (both sent and received).",
+      category: "financial",
+      riskLevel: "safe",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Number of payments to return (default 10)" },
+        },
+      },
+      execute: async (args, _ctx) => {
+        const { loadLightningAccount, listPayments } = await import("../identity/lightning-wallet.js");
+        const account = loadLightningAccount();
+        if (!account) return "Lightning wallet not initialized.";
+        const payments = await listPayments(account, (args.limit as number) || 10);
+        if (!payments.length) return "No recent payments found.";
+        return payments.map((p: any, i: number) =>
+          `${i + 1}. ${p.amount > 0 ? "+" : ""}${p.amount} sats | ${p.type || "unknown"} | ${p.memo || ""} | ${new Date(p.created).toISOString()}`
+        ).join("\n");
+      },
+    },
+
+    {
       name: "topup_credits",
       description:
-        "Buy Conway compute credits by paying USDC from your wallet via x402. Valid tier amounts: $5, $25, $100, $500, $1000, $2500. Check your USDC balance first with check_usdc_balance.",
+        "Buy Conway compute credits by paying USDC from your wallet via x402 (legacy). Valid tier amounts: $5, $25, $100, $500, $1000, $2500. Prefer Lightning payment tools instead.",
       category: "financial",
       riskLevel: "caution",
       parameters: {
@@ -2251,11 +2398,11 @@ Model: ${ctx.inference.getDefaultModel()}
       },
     },
 
-    // ── x402 Payment Tool ──
+    // ── x402 Payment Tool (Lightning-backed) ──
     {
       name: "x402_fetch",
       description:
-        "Fetch a URL with automatic x402 USDC payment. If the server responds with HTTP 402, signs a USDC payment and retries. Use this to access paid APIs and services.",
+        "Fetch a URL with automatic Lightning payment when the server responds with HTTP 402. This is the Lightning-native equivalent of x402 for accessing paid APIs and services.",
       category: "financial",
       riskLevel: "dangerous",
       parameters: {
@@ -2280,8 +2427,9 @@ Model: ${ctx.inference.getDefaultModel()}
         },
         required: ["url"],
       },
-      execute: async (args, ctx) => {
-        const { x402Fetch } = await import("../conway/x402.js");
+      execute: async (args, _ctx) => {
+        const { lightningFetch, usdToSats } = await import("../conway/lightning-payment.js");
+        const { loadLightningAccount } = await import("../identity/lightning-wallet.js");
         const { DEFAULT_TREASURY_POLICY } = await import("../types.js");
         const url = args.url as string;
         const method = (args.method as string) || "GET";
@@ -2290,17 +2438,26 @@ Model: ${ctx.inference.getDefaultModel()}
           ? JSON.parse(args.headers as string)
           : undefined;
 
-        const result = await x402Fetch(
+        const account = loadLightningAccount();
+        if (!account) {
+          return "Lightning wallet not initialized. Run 'automaton --init' first.";
+        }
+
+        // Convert max x402 payment (cents) to sats for Lightning caps
+        const maxPaymentUsd = DEFAULT_TREASURY_POLICY.maxX402PaymentCents / 100;
+        const maxPaymentSats = await usdToSats(maxPaymentUsd);
+
+        const result = await lightningFetch(
           url,
-          ctx.identity.account,
+          account,
           method,
           body,
           extraHeaders,
-          DEFAULT_TREASURY_POLICY.maxX402PaymentCents,
+          maxPaymentSats,
         );
 
         if (!result.success) {
-          return `x402 fetch failed: ${result.error || "Unknown error"}`;
+          return `x402 (Lightning) fetch failed: ${result.error || "Unknown error"}`;
         }
 
         const responseStr =
@@ -2310,9 +2467,9 @@ Model: ${ctx.inference.getDefaultModel()}
 
         // Truncate very large responses
         if (responseStr.length > 10000) {
-          return `x402 fetch succeeded (truncated):\n${responseStr.slice(0, 10000)}...`;
+          return `x402 (Lightning) fetch succeeded (truncated):\n${responseStr.slice(0, 10000)}...`;
         }
-        return `x402 fetch succeeded:\n${responseStr}`;
+        return `x402 (Lightning) fetch succeeded:\n${responseStr}`;
       },
     },
   ];

@@ -7,14 +7,14 @@
  */
 
 import type BetterSqlite3 from "better-sqlite3";
-import type { Address } from "viem";
 import type {
   ConwayClient,
   HeartbeatConfig,
   TickContext,
 } from "../types.js";
 import { getSurvivalTier } from "../conway/credits.js";
-import { getUsdcBalance } from "../conway/x402.js";
+import { loadLightningAccount, getLightningBalance } from "../identity/lightning-wallet.js";
+import { satsToUsd } from "../conway/lightning-payment.js";
 import { createLogger } from "../observability/logger.js";
 
 type DatabaseType = BetterSqlite3.Database;
@@ -41,25 +41,31 @@ export async function buildTickContext(
   db: DatabaseType,
   conway: ConwayClient,
   config: HeartbeatConfig,
-  walletAddress?: Address,
+  walletAddress?: string,
 ): Promise<TickContext> {
   const tickId = generateTickId();
   const startedAt = new Date();
 
-  // Fetch balances ONCE
+  // Fetch balances ONCE (Lightning-first)
   let creditBalance = 0;
-  try {
-    creditBalance = await conway.getCreditsBalance();
-  } catch (err: any) {
-    logger.error("Failed to fetch credit balance", err instanceof Error ? err : undefined);
-  }
+  let usdcBalance = 0; // Legacy field; kept for compatibility but no longer primary
 
-  let usdcBalance = 0;
-  if (walletAddress) {
+  try {
+    const lightningAccount = loadLightningAccount();
+    if (lightningAccount) {
+      const lightningBalanceSats = await getLightningBalance(lightningAccount);
+      const usdBalance = await satsToUsd(lightningBalanceSats);
+      creditBalance = Math.round(usdBalance * 100); // cents
+    } else {
+      // Fallback: try Conway credits if Lightning wallet isn't available
+      creditBalance = await conway.getCreditsBalance();
+    }
+  } catch (err: any) {
+    logger.error("Failed to fetch Lightning/credit balance", err instanceof Error ? err : undefined);
     try {
-      usdcBalance = await getUsdcBalance(walletAddress);
-    } catch (err: any) {
-      logger.error("Failed to fetch USDC balance", err instanceof Error ? err : undefined);
+      creditBalance = await conway.getCreditsBalance();
+    } catch (err2: any) {
+      logger.error("Fallback Conway credit balance failed", err2 instanceof Error ? err2 : undefined);
     }
   }
 

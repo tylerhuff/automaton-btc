@@ -9,6 +9,9 @@
 
 import { getWallet, getAutomatonDir } from "./identity/wallet.js";
 import { provision, loadApiKeyFromConfig } from "./identity/provision.js";
+// Lightning imports
+import { getLightningWallet } from "./identity/lightning-wallet.js";
+import { provisionLightning, loadLightningApiKeyFromConfig } from "./identity/lightning-provision.js";
 import { loadConfig, resolvePath } from "./config.js";
 import { createDatabase } from "./state/database.js";
 import { createConwayClient } from "./conway/client.js";
@@ -47,29 +50,30 @@ async function main(): Promise<void> {
   if (args.includes("--help") || args.includes("-h")) {
     logger.info(`
 Conway Automaton v${VERSION}
-Sovereign AI Agent Runtime
+Sovereign AI Agent Runtime (Bitcoin/Lightning fork)
 
 Usage:
-  automaton --run          Start the automaton (first run triggers setup wizard)
-  automaton --setup        Re-run the interactive setup wizard
-  automaton --init         Initialize wallet and config directory
-  automaton --provision    Provision Conway API key via SIWE
-  automaton --status       Show current automaton status
-  automaton --version      Show version
-  automaton --help         Show this help
+  automaton --run                    Start the automaton (first run triggers setup wizard)
+  automaton --setup                  Re-run the interactive setup wizard
+  automaton --init                   Initialize Lightning wallet and config directory
+  automaton --provision [--provider] Provision API key using Lightning auth (providers: voltage, lunanode, njalla, 1984is)
+  automaton --status                 Show current automaton status
+  automaton --version                Show version
+  automaton --help                   Show this help
 
 Environment:
-  CONWAY_API_URL           Conway API URL (default: https://api.conway.tech)
-  CONWAY_API_KEY           Conway API key (overrides config)
+  CONWAY_API_URL           Conway API URL (legacy, optional; default: https://api.conway.tech)
+  CONWAY_API_KEY           Conway API key (legacy; overrides config when used)
 `);
     process.exit(0);
   }
 
   if (args.includes("--init")) {
-    const { account, isNew } = await getWallet();
+    // Initialize Lightning wallet (primary identity)
+    const { account, isNew } = await getLightningWallet();
     logger.info(
       JSON.stringify({
-        address: account.address,
+        lightningAddress: account.lightningAddress,
         isNew,
         configDir: getAutomatonDir(),
       }),
@@ -79,10 +83,16 @@ Environment:
 
   if (args.includes("--provision")) {
     try {
-      const result = await provision();
+      // Lightning-native provisioning for Bitcoin-accepting providers
+      const providerArgIndex = args.indexOf("--provider");
+      const provider =
+        providerArgIndex !== -1 && args[providerArgIndex + 1]
+          ? (args[providerArgIndex + 1] as "voltage" | "lunanode" | "njalla" | "1984is")
+          : "voltage";
+      const result = await provisionLightning(provider);
       logger.info(JSON.stringify(result));
     } catch (err: any) {
-      logger.error(`Provision failed: ${err.message}`);
+      logger.error(`Lightning provision failed: ${err.message}`);
       process.exit(1);
     }
     process.exit(0);

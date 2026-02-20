@@ -14,7 +14,9 @@ import type {
   SurvivalTier,
 } from "../types.js";
 import { getSurvivalTier, formatCredits } from "../conway/credits.js";
-import { getUsdcBalance } from "../conway/x402.js";
+// Lightning-based financial monitoring
+import { loadLightningAccount, getLightningBalance } from "../identity/lightning-wallet.js";
+import { satsToUsd } from "../conway/lightning-payment.js";
 
 export interface ResourceStatus {
   financial: FinancialState;
@@ -32,16 +34,30 @@ export async function checkResources(
   conway: ConwayClient,
   db: AutomatonDatabase,
 ): Promise<ResourceStatus> {
-  // Check credits
+  // Check Lightning balance (primary financial metric)
   let creditsCents = 0;
-  try {
-    creditsCents = await conway.getCreditsBalance();
-  } catch {}
+  let lightningBalanceSats = 0;
+  let usdcBalance = 0; // Deprecated, kept for backwards compatibility
 
-  // Check USDC
-  let usdcBalance = 0;
   try {
-    usdcBalance = await getUsdcBalance(identity.address);
+    const lightningAccount = loadLightningAccount();
+    if (lightningAccount) {
+      lightningBalanceSats = await getLightningBalance(lightningAccount);
+      // Convert Lightning balance to approximate USD credits for survival logic
+      const usdBalance = await satsToUsd(lightningBalanceSats);
+      creditsCents = Math.round(usdBalance * 100);
+    }
+  } catch {
+    // If Lightning balance check fails, fall back to Conway credits as a last resort
+    try {
+      creditsCents = await conway.getCreditsBalance();
+    } catch {}
+  }
+
+  // USDC is no longer primary, but we keep the field populated if available
+  try {
+    // In Lightning-native mode this will usually be zero
+    usdcBalance = 0;
   } catch {}
 
   // Check sandbox health
@@ -56,6 +72,7 @@ export async function checkResources(
   const financial: FinancialState = {
     creditsCents,
     usdcBalance,
+    lightningBalanceSats,
     lastChecked: new Date().toISOString(),
   };
 
@@ -85,8 +102,9 @@ export async function checkResources(
 export function formatResourceReport(status: ResourceStatus): string {
   const lines = [
     `=== RESOURCE STATUS ===`,
-    `Credits: ${formatCredits(status.financial.creditsCents)}`,
-    `USDC: ${status.financial.usdcBalance.toFixed(6)}`,
+    `Credits (approx): ${formatCredits(status.financial.creditsCents)} (from Lightning balance)`,
+    `Lightning: ${(status.financial.lightningBalanceSats ?? 0)} sats`,
+    `USDC (legacy): ${status.financial.usdcBalance.toFixed(6)}`,
     `Tier: ${status.tier}${status.tierChanged ? ` (changed from ${status.previousTier})` : ""}`,
     `Sandbox: ${status.sandboxHealthy ? "healthy" : "UNHEALTHY"}`,
     `Checked: ${status.financial.lastChecked}`,

@@ -23,6 +23,37 @@ export interface WalletData {
   createdAt: string;
 }
 
+// ─── Lightning Wallet Types ──────────────────────────────────────
+
+export interface LightningWalletData {
+  privateKey: string;
+  publicKey: string;
+  lightningAddress: string;
+  coinosToken?: string;
+  albyToken?: string;
+  coinosUsername?: string;
+  coinosUserId?: string;
+  coinosPubkey?: string;
+  createdAt: string;
+}
+
+export interface LightningAccount {
+  privateKey: string;
+  publicKey: string;
+  lightningAddress: string;
+  coinosToken?: string;
+  albyToken?: string;
+}
+
+export interface LightningIdentity {
+  name: string;
+  lightningAddress: string;
+  account: LightningAccount;
+  creatorAddress?: string;
+  apiKey?: string;
+  createdAt: string;
+}
+
 export interface ProvisionResult {
   apiKey: string;
   walletAddress: string;
@@ -203,7 +234,8 @@ export interface HeartbeatPingPayload {
 
 export interface FinancialState {
   creditsCents: number;
-  usdcBalance: number;
+  usdcBalance: number; // DEPRECATED: Keep for migration compatibility
+  lightningBalanceSats?: number;
   lastChecked: string;
 }
 
