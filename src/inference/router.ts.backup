@@ -18,7 +18,6 @@ import type {
   ChatMessage,
   ModelPreference,
   ModelStrategyConfig,
-  InferenceToolDefinition,
 } from "../types.js";
 import { ModelRegistry } from "./registry.js";
 import { InferenceBudgetTracker } from "./budget.js";
@@ -45,32 +44,25 @@ export class InferenceRouter {
     
     // Initialize provider manager if config is provided
     if (modelConfig) {
-      try {
-        const providerConfig: ProviderManagerConfig = {
-          inferenceProvider: modelConfig.inferenceProvider || "ollama",
-          inferenceApiKey: modelConfig.inferenceApiKey,
-          inferenceBaseUrl: modelConfig.inferenceBaseUrl,
-          inferenceModel: modelConfig.inferenceModel,
-          openaiApiKey: modelConfig.openaiApiKey,
-          anthropicApiKey: modelConfig.anthropicApiKey,
-          groqApiKey: modelConfig.groqApiKey,
-          ollamaBaseUrl: modelConfig.ollamaBaseUrl,
-          fallbackProviders: modelConfig.fallbackProviders,
-        };
-        this.providers = new ProviderManager(providerConfig);
-      } catch (error) {
-        // If provider initialization fails, fall back to Conway callback mode
-        console.warn("Failed to initialize provider manager, falling back to Conway mode:", error);
-      }
+      const providerConfig: ProviderManagerConfig = {
+        inferenceProvider: modelConfig.inferenceProvider || "ollama",
+        inferenceApiKey: modelConfig.inferenceApiKey,
+        inferenceBaseUrl: modelConfig.inferenceBaseUrl,
+        inferenceModel: modelConfig.inferenceModel,
+        openaiApiKey: modelConfig.openaiApiKey,
+        anthropicApiKey: modelConfig.anthropicApiKey,
+        groqApiKey: modelConfig.groqApiKey,
+        ollamaBaseUrl: modelConfig.ollamaBaseUrl,
+        fallbackProviders: modelConfig.fallbackProviders,
+      };
+      this.providers = new ProviderManager(providerConfig);
     }
   }
 
   /**
-   * Route an inference request: select model, check budget,
-   * transform messages, call inference, record cost.
-   * 
-   * Uses provider-agnostic system if available, otherwise falls back
-   * to Conway callback for backward compatibility.
+   * Route an inference request using provider-agnostic system.
+   * If ProviderManager is available, uses direct provider calls.
+   * Otherwise falls back to Conway callback for backward compatibility.
    */
   async route(
     request: InferenceRequest,
@@ -79,9 +71,9 @@ export class InferenceRouter {
     if (this.providers) {
       return this.routeViaProviders(request);
     } else if (inferenceChat) {
-      return this.routeViaConway(request, inferenceChat);
+      return this.routeViaCallback(request, inferenceChat);
     } else {
-      throw new Error("No inference method available - need either provider config or Conway callback");
+      throw new Error("No inference method available - need either ProviderManager or inferenceChat callback");
     }
   }
 
@@ -91,13 +83,13 @@ export class InferenceRouter {
   private async routeViaProviders(request: InferenceRequest): Promise<InferenceResult> {
     const { messages, taskType, tier, sessionId, turnId, tools } = request;
 
-    // 1. Get current provider and use its default model
+    // 1. Get current provider
     const provider = this.providers!.getCurrentProvider();
-    const model = provider.getDefaultModel();
+    const model = request.model || provider.getDefaultModel();
 
-    // 2. Estimate and check budget
+    // 2. Check budget (simplified for provider approach)
     const estimatedTokens = messages.reduce((sum, m) => sum + (m.content?.length || 0) / 4, 0);
-    const estimatedCostCents = Math.ceil(estimatedTokens * 0.002); // Conservative estimate
+    const estimatedCostCents = Math.ceil(estimatedTokens * 0.001); // Conservative estimate
 
     const budgetCheck = this.budget.checkBudget(estimatedCostCents, model);
     if (!budgetCheck.allowed) {
@@ -122,19 +114,19 @@ export class InferenceRouter {
       response = await provider.chat(messages, {
         model,
         maxTokens,
-        tools: tools as InferenceToolDefinition[] | undefined,
+        tools,
       });
     } catch (error: any) {
       const latencyMs = Date.now() - startTime;
       
       // Try fallback provider if available
       const fallback = await this.providers!.getFallbackProvider();
-      if (fallback) {
+      if (fallback && this.budget.getConfig().enableModelFallback) {
         try {
           response = await fallback.chat(messages, {
             model: fallback.getDefaultModel(),
             maxTokens: request.maxTokens || 4096,
-            tools: tools as InferenceToolDefinition[] | undefined,
+            tools,
           });
         } catch {
           // Fallback failed too
@@ -165,14 +157,15 @@ export class InferenceRouter {
     
     const latencyMs = Date.now() - startTime;
 
-    // 4. Calculate actual cost (zero for local providers like Ollama)
+    // 4. Calculate actual cost (zero for local providers)
     const inputTokens = response.usage?.promptTokens || 0;
     const outputTokens = response.usage?.completionTokens || 0;
     
+    // For local providers (Ollama), cost is zero
     const isLocal = provider.getName() === "ollama";
     const actualCostCents = isLocal ? 0 : Math.ceil(
-      (inputTokens / 1000) * 0.002 + // Rough estimate - real providers should provide pricing
-      (outputTokens / 1000) * 0.006,
+      (inputTokens / 1000) * 0.001 + // Rough estimate, providers should provide pricing
+      (outputTokens / 1000) * 0.003,
     );
 
     // 5. Record cost
@@ -205,13 +198,50 @@ export class InferenceRouter {
   }
 
   /**
-   * Route via Conway callback (legacy method for backward compatibility)
+   * Route via Conway callback (legacy compatibility method)
    */
-  private async routeViaConway(
+  private async routeViaCallback(
     request: InferenceRequest,
     inferenceChat: (messages: any[], options: any) => Promise<any>,
   ): Promise<InferenceResult> {
     const { messages, taskType, tier, sessionId, turnId, tools } = request;
+
+    // 1. Select model from routing matrix
+    const model = this.selectModel(tier, taskType);
+    if (!model) {
+      return {
+        content: "",
+        model: "none",
+        provider: "other",
+        inputTokens: 0,
+        outputTokens: 0,
+        costCents: 0,
+        latencyMs: 0,
+        finishReason: "error",
+        toolCalls: undefined,
+      };
+    }
+
+    // 2. Estimate cost and check budget
+    const estimatedTokens = messages.reduce((sum, m) => sum + (m.content?.length || 0) / 4, 0);
+    const estimatedCostCents = Math.ceil(
+      (estimatedTokens / 1000) * model.costPer1kInput / 100 +
+      (request.maxTokens || 1000) / 1000 * model.costPer1kOutput / 100,
+    );
+
+    const budgetCheck = this.budget.checkBudget(estimatedCostCents, model.modelId);
+    if (!budgetCheck.allowed) {
+      return {
+        content: `Budget exceeded: ${budgetCheck.reason}`,
+        model: model.modelId,
+        provider: model.provider,
+        inputTokens: 0,
+        outputTokens: 0,
+        costCents: 0,
+        latencyMs: 0,
+        finishReason: "budget_exceeded",
+      };
+    }
 
     // 1. Select model from routing matrix
     const model = this.selectModel(tier, taskType);
@@ -257,6 +287,87 @@ export class InferenceRouter {
       // Session budget is from config, default 0 = no limit
       // Access via budget's config is internal, we just check if limit > 0
     }
+
+    // 4. Transform messages for provider
+    const transformedMessages = this.transformMessagesForProvider(messages, model.provider);
+
+    // 5. Build inference options
+    const preference = this.getPreference(tier, taskType);
+    const maxTokens = request.maxTokens || preference?.maxTokens || model.maxTokens;
+    const timeout = TASK_TIMEOUTS[taskType] || 120_000;
+
+    const inferenceOptions: any = {
+      model: model.modelId,
+      maxTokens,
+      tools: tools,
+    };
+
+    // 6. Call inference with timeout
+    const startTime = Date.now();
+    let response: any;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeout);
+      try {
+        response = await inferenceChat(transformedMessages, inferenceOptions);
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (error: any) {
+      const latencyMs = Date.now() - startTime;
+      // If fallback is enabled, try next candidate
+      if (error.name === "AbortError") {
+        return {
+          content: `Inference timeout after ${timeout}ms`,
+          model: model.modelId,
+          provider: model.provider,
+          inputTokens: 0,
+          outputTokens: 0,
+          costCents: 0,
+          latencyMs,
+          finishReason: "timeout",
+        };
+      }
+      throw error;
+    }
+    const latencyMs = Date.now() - startTime;
+
+    // 7. Calculate actual cost
+    const inputTokens = response.usage?.promptTokens || 0;
+    const outputTokens = response.usage?.completionTokens || 0;
+    const actualCostCents = Math.ceil(
+      (inputTokens / 1000) * model.costPer1kInput / 100 +
+      (outputTokens / 1000) * model.costPer1kOutput / 100,
+    );
+
+    // 8. Record cost
+    this.budget.recordCost({
+      sessionId,
+      turnId: turnId || null,
+      model: model.modelId,
+      provider: model.provider,
+      inputTokens,
+      outputTokens,
+      costCents: actualCostCents,
+      latencyMs,
+      tier,
+      taskType,
+      cacheHit: false,
+    });
+
+    // 9. Build result
+    return {
+      content: response.message?.content || "",
+      model: model.modelId,
+      provider: model.provider,
+      inputTokens,
+      outputTokens,
+      costCents: actualCostCents,
+      latencyMs,
+      toolCalls: response.toolCalls,
+      finishReason: response.finishReason || "stop",
+    };
+  }
 
     // 4. Transform messages for provider
     const transformedMessages = this.transformMessagesForProvider(messages, model.provider);

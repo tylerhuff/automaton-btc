@@ -1133,7 +1133,7 @@ export const DEFAULT_MEMORY_BUDGET: MemoryBudget = {
 
 // === Phase 2.3: Inference & Model Strategy Types ===
 
-export type ModelProvider = "openai" | "anthropic" | "conway" | "other";
+export type ModelProvider = "openai" | "anthropic" | "groq" | "ollama" | "conway" | "other";
 
 export type InferenceTaskType =
   | "agent_turn"
@@ -1233,18 +1233,37 @@ export interface ModelStrategyConfig {
   perCallCeilingCents: number; // default: 0 (no limit)
   enableModelFallback: boolean; // default: true
   anthropicApiVersion: string; // default: "2023-06-01"
+  
+  // Provider-agnostic inference config
+  inferenceProvider: string; // "openai" | "anthropic" | "groq" | "ollama"
+  inferenceApiKey?: string; // Primary API key for the selected provider
+  inferenceBaseUrl?: string; // Custom base URL (for Ollama, custom OpenAI endpoints, etc.)
+  
+  // Per-provider API keys (optional, for multi-provider setups)
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
+  groqApiKey?: string;
+  ollamaBaseUrl?: string; // Custom Ollama URL (defaults to localhost:11434)
+  
+  // Fallback configuration
+  fallbackProviders?: string[]; // Providers to try if primary fails
 }
 
 export const DEFAULT_MODEL_STRATEGY_CONFIG: ModelStrategyConfig = {
-  inferenceModel: "gpt-4.1",
-  lowComputeModel: "gpt-4.1-mini",
-  criticalModel: "gpt-4.1-nano",
+  inferenceModel: "gpt-4o",
+  lowComputeModel: "gpt-4o-mini",
+  criticalModel: "gpt-4o-mini",
   maxTokensPerTurn: 4096,
   hourlyBudgetCents: 0,
   sessionBudgetCents: 0,
   perCallCeilingCents: 0,
   enableModelFallback: true,
   anthropicApiVersion: "2023-06-01",
+  
+  // Provider defaults - use Ollama for sovereignty
+  inferenceProvider: "ollama",
+  fallbackProviders: ["groq", "openai", "anthropic"],
+  ollamaBaseUrl: "http://localhost:11434",
 };
 
 // === Phase 3.1: Replication & Lifecycle Types ===

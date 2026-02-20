@@ -103,7 +103,7 @@ export async function runAgentLoop(
   const modelRegistry = new ModelRegistry(db.raw);
   modelRegistry.initialize();
   const budgetTracker = new InferenceBudgetTracker(db.raw, modelStrategyConfig);
-  const inferenceRouter = new InferenceRouter(db.raw, modelRegistry, budgetTracker);
+  const inferenceRouter = new InferenceRouter(db.raw, modelRegistry, budgetTracker, modelStrategyConfig);
 
   // Set start time
   if (!db.getKV("start_time")) {

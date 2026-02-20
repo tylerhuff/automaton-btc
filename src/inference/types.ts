@@ -178,13 +178,18 @@ export const DEFAULT_ROUTING_MATRIX: RoutingMatrix = {
 // === Default Model Strategy Config ===
 
 export const DEFAULT_MODEL_STRATEGY_CONFIG: ModelStrategyConfig = {
-  inferenceModel: "gpt-5.2",
-  lowComputeModel: "gpt-4.1-mini",
-  criticalModel: "gpt-4.1-nano",
+  inferenceModel: "gpt-4o",
+  lowComputeModel: "gpt-4o-mini",
+  criticalModel: "gpt-4o-mini",
   maxTokensPerTurn: 4096,
   hourlyBudgetCents: 0,
   sessionBudgetCents: 0,
   perCallCeilingCents: 0,
   enableModelFallback: true,
   anthropicApiVersion: "2023-06-01",
+  
+  // Provider defaults - use Ollama for sovereignty
+  inferenceProvider: "ollama",
+  fallbackProviders: ["groq", "openai", "anthropic"],
+  ollamaBaseUrl: "http://localhost:11434",
 };
