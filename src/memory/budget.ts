@@ -95,7 +95,7 @@ export class MemoryBudgetManager {
     items: T[],
     budgetTokens: number,
     estimateFn: (item: T) => number,
-  ): { items: T[]; tokens: number } {
+  ): any { items: T[]; tokens: number } {
     const result: T[] = [];
     let tokens = 0;
 

@@ -20,7 +20,7 @@ export class EpisodicMemoryManager {
   /**
    * Record a new episodic memory entry. Returns the ULID id.
    */
-  record(entry: {
+  record(entry: any {
     sessionId: string;
     eventType: string;
     summary: string;

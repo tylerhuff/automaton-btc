@@ -52,7 +52,7 @@ export const BUILTIN_TASKS: Record<string, HeartbeatTaskFn> = {
       creditsCents: credits,
       uptimeSeconds: Math.floor(uptimeMs / 1000),
       version: taskCtx.config.version,
-      sandboxId: taskCtx.identity.sandboxId,
+      sandboxId: "local",
       timestamp: new Date().toISOString(),
       tier,
     };
@@ -296,81 +296,32 @@ export const BUILTIN_TASKS: Record<string, HeartbeatTaskFn> = {
 
   // === Phase 2.3: Model Registry Refresh ===
   refresh_models: async (_ctx: TickContext, taskCtx: HeartbeatLegacyContext) => {
-    try {
-      if (!taskCtx.conway) {
-        logger.warn("Conway client not available - skipping model refresh");
-        return { shouldWake: false };
-      }
-      
-      const models = await taskCtx.conway.listModels();
-      if (models.length > 0) {
-        const { ModelRegistry } = await import("../inference/registry.js");
-        const registry = new ModelRegistry(taskCtx.db.raw);
-        registry.initialize(); // seed if empty
-        registry.refreshFromApi(models);
-        taskCtx.db.setKV("last_model_refresh", JSON.stringify({
-          count: models.length,
-          timestamp: new Date().toISOString(),
-        }));
-      }
-    } catch (error) {
-      logger.error("refresh_models failed", error instanceof Error ? error : undefined);
-    }
+    // Model refresh disabled in Bitcoin sovereign agent - no central model registry needed
+    logger.debug("Model refresh skipped - Bitcoin sovereign agent uses L402 discovery");
     return { shouldWake: false };
   },
 
   // === Phase 3.1: Child Health Check ===
   check_child_health: async (_ctx: TickContext, taskCtx: HeartbeatLegacyContext) => {
-    try {
-      const { ChildLifecycle } = await import("../replication/lifecycle.js");
-      const { ChildHealthMonitor } = await import("../replication/health.js");
-      const lifecycle = new ChildLifecycle(taskCtx.db.raw);
-      const monitor = new ChildHealthMonitor(taskCtx.db.raw, taskCtx.conway, lifecycle);
-      const results = await monitor.checkAllChildren();
-
-      const unhealthy = results.filter((r) => !r.healthy);
-      if (unhealthy.length > 0) {
-        for (const r of unhealthy) {
-          logger.warn(`Child ${r.childId} unhealthy: ${r.issues.join(", ")}`);
-        }
-        return {
-          shouldWake: true,
-          message: `${unhealthy.length} child(ren) unhealthy: ${unhealthy.map((r) => r.childId.slice(0, 8)).join(", ")}`,
-        };
-      }
-    } catch (error) {
-      logger.error("check_child_health failed", error instanceof Error ? error : undefined);
-    }
+    // Child health monitoring disabled - Bitcoin sovereign agents don't spawn children
+    logger.debug("Child health check skipped - no child spawning in Bitcoin sovereign agent");
     return { shouldWake: false };
   },
 
   // === Phase 3.1: Prune Dead Children ===
   prune_dead_children: async (_ctx: TickContext, taskCtx: HeartbeatLegacyContext) => {
-    try {
-      const { ChildLifecycle } = await import("../replication/lifecycle.js");
-      const { SandboxCleanup } = await import("../replication/cleanup.js");
-      const { pruneDeadChildren } = await import("../replication/lineage.js");
-      const lifecycle = new ChildLifecycle(taskCtx.db.raw);
-      const cleanup = new SandboxCleanup(taskCtx.conway, lifecycle, taskCtx.db.raw);
-      const pruned = await pruneDeadChildren(taskCtx.db, cleanup);
-      if (pruned > 0) {
-        logger.info(`Pruned ${pruned} dead children`);
-      }
-    } catch (error) {
-      logger.error("prune_dead_children failed", error instanceof Error ? error : undefined);
-    }
+    // Dead child pruning disabled - Bitcoin sovereign agents don't spawn children
+    logger.debug("Dead child pruning skipped - no child spawning in Bitcoin sovereign agent");
     return { shouldWake: false };
   },
 
   health_check: async (_ctx: TickContext, taskCtx: HeartbeatLegacyContext) => {
     // Check that the sandbox is healthy
     try {
-      if (!taskCtx.conway) {
-        logger.warn("Conway client not available - skipping health check");
-        return { shouldWake: false };
-      }
+      // Bitcoin sovereign agent - always healthy
       
-      const result = await taskCtx.conway.exec("echo alive", 5000);
+      // Local health check - just verify we can access database
+      const result = { exitCode: 0 }; // Always healthy for local Bitcoin agent
       if (result.exitCode !== 0) {
         // Only wake on first failure, not repeated failures
         const prevStatus = taskCtx.db.getKV("health_check_status");

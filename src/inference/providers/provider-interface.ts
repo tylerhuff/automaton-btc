@@ -140,7 +140,7 @@ export abstract class BaseInferenceProvider implements InferenceProvider {
   /**
    * Calculate token usage from provider response
    */
-  protected parseTokenUsage(response: any): { promptTokens: number; completionTokens: number; totalTokens: number } {
+  protected parseTokenUsage(response: any): any { promptTokens: number; completionTokens: number; totalTokens: number } {
     // Base OpenAI format - providers can override
     return {
       promptTokens: response.usage?.prompt_tokens || 0,

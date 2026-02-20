@@ -13,7 +13,7 @@ import { MESSAGE_LIMITS } from "./signing.js";
 /**
  * Validate a social message for size, timestamp, and address constraints.
  */
-export function validateMessage(message: {
+export function validateMessage(message: any {
   from: string;
   to: string;
   content: string;

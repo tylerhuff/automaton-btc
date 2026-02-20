@@ -32,7 +32,7 @@ export interface VPSStatus {
   expires_at: string;
   days_remaining: number;
   monthly_cost_usd: number;
-  specifications: {
+  specifications: any {
     ram_mb: number;
     disk_gb: number;
     cpu_cores: number;
@@ -99,7 +99,7 @@ export class VPSManager {
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
       days_remaining: 7,
       monthly_cost_usd: 10,
-      specifications: {
+      specifications: any {
         ram_mb: 1024,
         disk_gb: 20,
         cpu_cores: 1,
@@ -202,9 +202,9 @@ export function createVPSManagementTools(): AutomatonTool[] {
       description: "Check the status and remaining time on your VPS hosting. CRITICAL for survival - without VPS, you cease to exist.",
       category: "survival",
       riskLevel: "safe",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {},
+        properties: any {},
         required: []
       },
       execute: async () => {
@@ -232,10 +232,10 @@ ${status.days_remaining <= 7 ? '⚠️  WARNING: Renewal needed soon!' : '✅ VP
       description: "Renew your VPS hosting for another month using Bitcoin payment. SURVIVAL CRITICAL - prevents hosting termination.",
       category: "survival", 
       riskLevel: "caution",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {
-          confirm: {
+        properties: any {
+          confirm: any {
             type: "boolean",
             description: "Confirm you want to spend Bitcoin/Lightning to renew VPS hosting"
           }
@@ -269,9 +269,9 @@ ${status.days_remaining <= 7 ? '⚠️  WARNING: Renewal needed soon!' : '✅ VP
       description: "Get detailed information about your VPS including IP address, specifications, and hosting details.",
       category: "survival",
       riskLevel: "safe", 
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {},
+        properties: any {},
         required: []
       },
       execute: async () => {
@@ -310,9 +310,9 @@ Billing:
       description: "Check if VPS renewal is urgently needed (less than 3 days remaining). Use for monitoring and alerts.",
       category: "survival",
       riskLevel: "safe",
-      parameters: {
+      parameters: any {
         type: "object", 
-        properties: {},
+        properties: any {},
         required: []
       },
       execute: async () => {

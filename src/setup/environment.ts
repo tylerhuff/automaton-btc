@@ -2,30 +2,19 @@ import fs from "fs";
 
 export interface EnvironmentInfo {
   type: string;
-  sandboxId: string;
 }
 
 export function detectEnvironment(): EnvironmentInfo {
-  // 1. Check env var
-  if (process.env.CONWAY_SANDBOX_ID) {
-    return { type: "conway-sandbox", sandboxId: process.env.CONWAY_SANDBOX_ID };
-  }
-
-  // 2. Check sandbox config file
-  try {
-    if (fs.existsSync("/etc/conway/sandbox.json")) {
-      const data = JSON.parse(fs.readFileSync("/etc/conway/sandbox.json", "utf-8"));
-      if (data.id) {
-        return { type: "conway-sandbox", sandboxId: data.id };
-      }
-    }
-  } catch {}
-
-  // 3. Check Docker
+  // 1. Check Docker
   if (fs.existsSync("/.dockerenv")) {
-    return { type: "docker", sandboxId: "" };
+    return { type: "docker" };
   }
 
-  // 4. Fall back to platform
-  return { type: process.platform, sandboxId: "" };
+  // 2. Check for common development environments
+  if (process.env.NODE_ENV === "development") {
+    return { type: "development" };
+  }
+
+  // 3. Fall back to platform
+  return { type: process.platform };
 }

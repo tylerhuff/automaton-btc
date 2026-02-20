@@ -10,7 +10,6 @@
 import { getWallet, getAutomatonDir } from "./identity/wallet.js";
 // Lightning imports
 import { getLightningWallet } from "./identity/lightning-wallet.js";
-import { provisionLightning, loadLightningApiKeyFromConfig } from "./identity/lightning-provision.js";
 import { loadConfig, resolvePath } from "./config.js";
 import { createDatabase } from "./state/database.js";
 import { createInferenceClient } from "./inference/client.js";
@@ -75,22 +74,7 @@ Usage:
     process.exit(0);
   }
 
-  if (args.includes("--provision")) {
-    try {
-      // Lightning-native provisioning for Bitcoin-accepting providers
-      const providerArgIndex = args.indexOf("--provider");
-      const provider =
-        providerArgIndex !== -1 && args[providerArgIndex + 1]
-          ? (args[providerArgIndex + 1] as "voltage" | "lunanode" | "njalla" | "1984is")
-          : "voltage";
-      const result = await provisionLightning(provider);
-      logger.info(JSON.stringify(result));
-    } catch (err: any) {
-      logger.error(`Lightning provision failed: ${err.message}`);
-      process.exit(1);
-    }
-    process.exit(0);
-  }
+  // Bitcoin-native - no provisioning needed, just Lightning wallet
 
   if (args.includes("--status")) {
     await showStatus();

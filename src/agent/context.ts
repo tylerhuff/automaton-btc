@@ -70,8 +70,8 @@ function estimateTurnTokens(turn: AgentTurn): number {
 export function buildContextMessages(
   systemPrompt: string,
   recentTurns: AgentTurn[],
-  pendingInput?: { content: string; source: string },
-  options?: {
+  pendingInput?: any { content: string; source: string },
+  options?: any {
     budget?: TokenBudget;
     inference?: InferenceClient;
   },
@@ -158,7 +158,7 @@ export function buildContextMessages(
         msg.tool_calls = turn.toolCalls.map((tc) => ({
           id: tc.id,
           type: "function" as const,
-          function: {
+          function: any {
             name: tc.name,
             arguments: JSON.stringify(tc.arguments),
           },

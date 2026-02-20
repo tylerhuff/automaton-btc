@@ -29,7 +29,29 @@ import {
   type InferenceProviderConfig,
   type ChatOptions,
 } from "./provider-interface.js";
-import { ResilientHttpClient } from "../../conway/http-client.js";
+// Simple HTTP client replacement for Conway's ResilientHttpClient
+class SimpleHttpClient {
+  constructor(options?: any) {
+    // Ignore options for now
+  }
+  
+  async request(url: string, options: any) {
+    const response = await fetch(url, {
+      method: options.method || 'GET',
+      headers: options.headers || {},
+      body: options.body,
+      signal: AbortSignal.timeout(options.timeout || 30000)
+    });
+    
+    return {
+      ok: response.ok,
+      status: response.status,
+      headers: response.headers,
+      json: () => response.json(),
+      text: () => response.text()
+    };
+  }
+}
 import { loadLightningAccount, payLightningInvoice } from "../../identity/lightning-wallet.js";
 import { createLogger } from "../../observability/logger.js";
 import { L402Discovery, type DiscoveredL402Service } from "./l402-discovery.js";
@@ -44,7 +66,7 @@ interface L402ProviderConfig extends InferenceProviderConfig {
 }
 
 export class L402Provider extends BaseInferenceProvider {
-  private httpClient: ResilientHttpClient;
+  private httpClient: SimpleHttpClient;
   private lightningAccount: LightningAccount | null;
   private discovery: L402Discovery;
   private selectedProvider: DiscoveredL402Service | null = null;
@@ -58,10 +80,7 @@ export class L402Provider extends BaseInferenceProvider {
     super(config);
     this.manualEndpoint = config.l402Endpoint;
     this.manualModel = config.l402Model || "gpt-4o";
-    this.httpClient = new ResilientHttpClient({
-      baseTimeout: 45000, // L402 might take longer due to Lightning payment + discovery
-      retryableStatuses: [429, 500, 502, 503, 504],
-    });
+    this.httpClient = new SimpleHttpClient();
     
     // Initialize discovery system
     this.discovery = new L402Discovery();
@@ -157,7 +176,7 @@ export class L402Provider extends BaseInferenceProvider {
    */
   private async attemptInference(
     endpoint: string, 
-    requestBody: { model: string, input: string },
+    requestBody: any { model: string, input: string },
     model: string
   ): Promise<InferenceResponse> {
     // Step 1: Make initial request (should get 402 Payment Required)
@@ -165,7 +184,7 @@ export class L402Provider extends BaseInferenceProvider {
     
     const initialResponse = await this.httpClient.request(endpoint, {
       method: "POST",
-      headers: {
+      headers: any {
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
@@ -207,7 +226,7 @@ export class L402Provider extends BaseInferenceProvider {
       const l402Token = `${macaroon}:${preimage}`;
       const authorizedResponse = await this.httpClient.request(endpoint, {
         method: "POST",
-        headers: {
+        headers: any {
           "Content-Type": "application/json",
           "Accept": "application/json",
           "Authorization": `L402 ${l402Token}`,
@@ -415,7 +434,7 @@ export class L402Provider extends BaseInferenceProvider {
   async getProviderInfo(): Promise<{ 
     selected: string | null; 
     fallbacks: string[]; 
-    cache: { services: number; lastUpdated: string | null; isValid: boolean } 
+    cache: any { services: number; lastUpdated: string | null; isValid: boolean } 
   }> {
     const cache = this.discovery.getCacheInfo();
     return {
@@ -429,7 +448,7 @@ export class L402Provider extends BaseInferenceProvider {
    * Parse the WWW-Authenticate header to extract macaroon and invoice
    * Format: "L402 macaroon=<base64_macaroon>, invoice=<bolt11_invoice>"
    */
-  private parseL402Challenge(wwwAuthenticate: string): { macaroon: string; invoice: string } {
+  private parseL402Challenge(wwwAuthenticate: string): any { macaroon: string; invoice: string } {
     logger.debug(`Parsing L402 challenge: ${wwwAuthenticate}`);
 
     // Remove "L402 " prefix
@@ -495,7 +514,7 @@ export class L402Provider extends BaseInferenceProvider {
     return {
       id: data.id || `sats4ai-${Date.now()}`,
       model: data.model || model,
-      message: {
+      message: any {
         role: "assistant",
         content: content,
         tool_calls: undefined,
@@ -523,7 +542,7 @@ export class L402Provider extends BaseInferenceProvider {
     return {
       id: data.id || "",
       model: data.model || model,
-      message: {
+      message: any {
         role: message.role,
         content: message.content || "",
         tool_calls: toolCalls,

@@ -21,7 +21,7 @@ export class SemanticMemoryManager {
    * Store a semantic memory entry. Upserts on (category, key).
    * Returns the ULID id.
    */
-  store(entry: {
+  store(entry: any {
     category: SemanticCategory;
     key: string;
     value: string;

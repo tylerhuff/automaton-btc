@@ -28,7 +28,7 @@ export const INJECTION_PATTERNS: RegExp[] = [
  * Validate genesis parameters for safety.
  * Throws on invalid input.
  */
-export function validateGenesisParams(params: {
+export function validateGenesisParams(params: any {
   name: string;
   specialization?: string;
   task?: string;
@@ -86,7 +86,7 @@ export function validateGenesisParams(params: {
 export function generateGenesisConfig(
   identity: AutomatonIdentity,
   config: AutomatonConfig,
-  params: {
+  params: any {
     name: string;
     specialization?: string;
     message?: string;

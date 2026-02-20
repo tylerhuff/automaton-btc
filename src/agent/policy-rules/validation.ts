@@ -25,7 +25,7 @@ function createPackageNameRule(): PolicyRule {
     id: "validate.package_name",
     description: "Validate npm package name format",
     priority: 100,
-    appliesTo: {
+    appliesTo: any {
       by: "name",
       names: ["install_npm_package", "install_mcp_server"],
     },
@@ -53,7 +53,7 @@ function createSkillNameRule(): PolicyRule {
     id: "validate.skill_name",
     description: "Validate skill name format (alphanumeric + hyphens only)",
     priority: 100,
-    appliesTo: {
+    appliesTo: any {
       by: "name",
       names: ["install_skill", "create_skill", "remove_skill"],
     },
@@ -81,7 +81,7 @@ function createGitHashRule(): PolicyRule {
     id: "validate.git_hash",
     description: "Validate git commit hash format",
     priority: 100,
-    appliesTo: {
+    appliesTo: any {
       by: "name",
       names: ["pull_upstream"],
     },
@@ -109,7 +109,7 @@ function createPortRangeRule(): PolicyRule {
     id: "validate.port_range",
     description: "Validate port number is in valid range (1-65535)",
     priority: 100,
-    appliesTo: {
+    appliesTo: any {
       by: "name",
       names: ["expose_port", "remove_port"],
     },
@@ -137,7 +137,7 @@ function createCronExpressionRule(): PolicyRule {
     id: "validate.cron_expression",
     description: "Validate cron expression format",
     priority: 100,
-    appliesTo: {
+    appliesTo: any {
       by: "name",
       names: ["modify_heartbeat"],
     },
@@ -165,7 +165,7 @@ function createAddressFormatRule(): PolicyRule {
     id: "validate.address_format",
     description: "Validate Ethereum address format (0x + 40 hex chars)",
     priority: 100,
-    appliesTo: {
+    appliesTo: any {
       by: "name",
       names: ["transfer_credits", "send_message", "fund_child"],
     },

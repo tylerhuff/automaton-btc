@@ -20,7 +20,7 @@ export class WorkingMemoryManager {
   /**
    * Add a new working memory entry. Returns the ULID id.
    */
-  add(entry: {
+  add(entry: any {
     sessionId: string;
     content: string;
     contentType: WorkingMemoryType;

@@ -324,7 +324,7 @@ export interface ChatMessage {
 export interface InferenceToolCall {
   id: string;
   type: "function";
-  function: {
+  function: any {
     name: string;
     arguments: string;
   };
@@ -349,7 +349,7 @@ export interface InferenceOptions {
 
 export interface InferenceToolDefinition {
   type: "function";
-  function: {
+  function: any {
     name: string;
     description: string;
     parameters: Record<string, unknown>;
@@ -433,7 +433,7 @@ export interface DnsRecord {
 export interface ModelInfo {
   id: string;
   provider: string;
-  pricing: {
+  pricing: any {
     inputPerMillion: number;
     outputPerMillion: number;
   };
@@ -471,7 +471,7 @@ export interface PolicyRequest {
   tool: AutomatonTool;
   args: Record<string, unknown>;
   context: ToolContext;
-  turnContext: {
+  turnContext: any {
     inputSource: InputSource | undefined;
     turnToolCallCount: number;
     sessionSpend: SpendTrackerInterface;
@@ -1380,7 +1380,7 @@ export interface LogEntry {
   module: string;
   message: string;
   context?: Record<string, unknown>;
-  error?: { message: string; stack?: string; code?: string };
+  error?: any { message: string; stack?: string; code?: string };
 }
 
 export type MetricType = "counter" | "gauge" | "histogram";

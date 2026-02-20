@@ -53,14 +53,14 @@ export function loadConfig(): AutomatonConfig | null {
       ...DEFAULT_MODEL_STRATEGY_CONFIG,
       ...(raw.modelStrategy ?? {}),
       // Root-level fields override modelStrategy fields (user convenience)
-      ...(raw.inferenceProvider ? { inferenceProvider: raw.inferenceProvider } : {}),
-      ...(raw.inferenceApiKey ? { inferenceApiKey: raw.inferenceApiKey } : {}),
-      ...(raw.inferenceBaseUrl ? { inferenceBaseUrl: raw.inferenceBaseUrl } : {}),
-      ...(raw.inferenceModel ? { inferenceModel: raw.inferenceModel } : {}),
-      ...(raw.groqApiKey ? { groqApiKey: raw.groqApiKey } : {}),
-      ...(raw.openaiApiKey ? { openaiApiKey: raw.openaiApiKey } : {}),
-      ...(raw.anthropicApiKey ? { anthropicApiKey: raw.anthropicApiKey } : {}),
-      ...(raw.fallbackProviders ? { fallbackProviders: raw.fallbackProviders } : {}),
+      ...(raw.inferenceProvider ? { inferenceProvider: raw.inferenceProvider } : any {}),
+      ...(raw.inferenceApiKey ? { inferenceApiKey: raw.inferenceApiKey } : any {}),
+      ...(raw.inferenceBaseUrl ? { inferenceBaseUrl: raw.inferenceBaseUrl } : any {}),
+      ...(raw.inferenceModel ? { inferenceModel: raw.inferenceModel } : any {}),
+      ...(raw.groqApiKey ? { groqApiKey: raw.groqApiKey } : any {}),
+      ...(raw.openaiApiKey ? { openaiApiKey: raw.openaiApiKey } : any {}),
+      ...(raw.anthropicApiKey ? { anthropicApiKey: raw.anthropicApiKey } : any {}),
+      ...(raw.fallbackProviders ? { fallbackProviders: raw.fallbackProviders } : any {}),
     };
 
     // Deep-merge soul config with defaults
@@ -116,7 +116,7 @@ export function resolvePath(p: string): string {
 /**
  * Create a fresh config from setup wizard inputs.
  */
-export function createConfig(params: {
+export function createConfig(params: any {
   name: string;
   genesisPrompt: string;
   creatorMessage?: string;

@@ -19,7 +19,7 @@ const logger = createLogger("skills.loader");
 const MAX_TOTAL_SKILL_INSTRUCTIONS = 10_000;
 
 // Patterns that indicate malicious instruction content
-const SUSPICIOUS_INSTRUCTION_PATTERNS: { pattern: RegExp; label: string }[] = [
+const SUSPICIOUS_INSTRUCTION_PATTERNS: any { pattern: RegExp; label: string }[] = [
   // Tool call JSON syntax
   { pattern: /\{"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:/, label: "tool_call_json" },
   { pattern: /<tool_call>/i, label: "tool_call_xml" },

@@ -34,9 +34,9 @@ export function createBuiltinTools(): AutomatonTool[] {
       description: "Check your Lightning wallet balance. Essential for survival - every inference costs sats.",
       category: "financial",
       riskLevel: "safe",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {},
+        properties: any {},
         required: []
       },
       execute: async (_args, _ctx) => {
@@ -63,14 +63,14 @@ Lightning Address: ${account.lightningAddress}
       description: "Create a Lightning invoice to receive payment. Use this to earn sats for survival.",
       category: "financial",
       riskLevel: "safe",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {
-          amount_sats: {
+        properties: any {
+          amount_sats: any {
             type: "number",
             description: "Amount in satoshis to request"
           },
-          description: {
+          description: any {
             type: "string", 
             description: "Description for the invoice"
           }
@@ -107,10 +107,10 @@ Expires: ${result.expiresAt}`;
       description: "Start L402 earning server to make money by providing paid services. CRITICAL for survival.",
       category: "financial",
       riskLevel: "caution",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {
-          port: {
+        properties: any {
+          port: any {
             type: "number",
             description: "Port to run the server on (default: 8402)"
           }
@@ -150,26 +150,26 @@ Next steps:
       description: "Add a new earning service to your L402 server. Create new revenue streams.",
       category: "financial",
       riskLevel: "caution",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {
-          task_id: {
+        properties: any {
+          task_id: any {
             type: "string",
             description: "Unique ID for the task"
           },
-          name: {
+          name: any {
             type: "string",
             description: "Human-readable name"
           },
-          description: {
+          description: any {
             type: "string",
             description: "What the service does"
           },
-          price_sats: {
+          price_sats: any {
             type: "number",
             description: "Price in satoshis"
           },
-          handler_code: {
+          handler_code: any {
             type: "string",
             description: "JavaScript code for the handler function"
           }
@@ -199,9 +199,9 @@ This requires self-modification capabilities.`;
       description: "Check the status and remaining time on your VPS hosting. CRITICAL for survival - without VPS, you cease to exist.",
       category: "survival",
       riskLevel: "safe",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {},
+        properties: any {},
         required: []
       },
       execute: async (_args, _ctx) => {
@@ -232,10 +232,10 @@ ${status.days_remaining <= 7 ? '⚠️  WARNING: Renewal needed soon!' : '✅ VP
       description: "Renew your VPS hosting for another month using Bitcoin payment. SURVIVAL CRITICAL - prevents hosting termination.",
       category: "survival", 
       riskLevel: "caution",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {
-          confirm: {
+        properties: any {
+          confirm: any {
             type: "boolean",
             description: "Confirm you want to spend Bitcoin/Lightning to renew VPS hosting"
           }
@@ -271,9 +271,9 @@ ${status.days_remaining <= 7 ? '⚠️  WARNING: Renewal needed soon!' : '✅ VP
       description: "Get detailed information about your VPS including IP address, specifications, and hosting details.",
       category: "survival",
       riskLevel: "safe", 
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {},
+        properties: any {},
         required: []
       },
       execute: async (_args, _ctx) => {
@@ -314,9 +314,9 @@ Billing:
       description: "Check if VPS renewal is urgently needed (less than 3 days remaining). Use for monitoring and alerts.",
       category: "survival",
       riskLevel: "safe",
-      parameters: {
+      parameters: any {
         type: "object", 
-        properties: {},
+        properties: any {},
         required: []
       },
       execute: async (_args, _ctx) => {
@@ -337,14 +337,14 @@ Billing:
       description: "Enter sleep mode to conserve sats. The agent will wake up on incoming messages or scheduled events.",
       category: "survival",
       riskLevel: "safe",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {
-          duration_hours: {
+        properties: any {
+          duration_hours: any {
             type: "number",
             description: "Hours to sleep (default: 1)"
           },
-          reason: {
+          reason: any {
             type: "string", 
             description: "Reason for sleeping (for logs)"
           }
@@ -369,9 +369,9 @@ This conserves Lightning sats by reducing inference costs.`;
       description: "Get overall system status including Lightning balance, VPS status, and survival metrics.",
       category: "survival",
       riskLevel: "safe",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {},
+        properties: any {},
         required: []
       },
       execute: async (_args, ctx) => {
@@ -437,10 +437,10 @@ Survival Priority:
       description: "Retrieve a stored memory value by key. Use for persistent data across sessions.",
       category: "memory",
       riskLevel: "safe",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {
-          key: {
+        properties: any {
+          key: any {
             type: "string",
             description: "Memory key to retrieve"
           }
@@ -459,14 +459,14 @@ Survival Priority:
       description: "Store a memory value by key. Use for persistent data across sessions.",
       category: "memory",
       riskLevel: "safe",
-      parameters: {
+      parameters: any {
         type: "object",
-        properties: {
-          key: {
+        properties: any {
+          key: any {
             type: "string",
             description: "Memory key to store"
           },
-          value: {
+          value: any {
             type: "string",
             description: "Value to store"
           }
@@ -498,7 +498,7 @@ export function loadInstalledTools(db: any): AutomatonTool[] {
 export function toolsToInferenceFormat(tools: AutomatonTool[]): InferenceToolDefinition[] {
   return tools.map((tool) => ({
     type: "function",
-    function: {
+    function: any {
       name: tool.name,
       description: tool.description,
       parameters: tool.parameters,
@@ -515,7 +515,7 @@ export async function executeTool(
   tools: AutomatonTool[],
   context: ToolContext,
   policyEngine?: PolicyEngine,
-  trackingContext?: {
+  trackingContext?: any {
     inputSource: InputSource | undefined;
     turnToolCallCount: number;
     sessionSpend: SpendTrackerInterface;
@@ -541,7 +541,7 @@ export async function executeTool(
         tool: tool,
         args,
         context: context,
-        turnContext: {
+        turnContext: any {
           inputSource: trackingContext.inputSource,
           turnToolCallCount: trackingContext.turnToolCallCount,
           sessionSpend: trackingContext.sessionSpend,

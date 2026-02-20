@@ -16,7 +16,10 @@ import type {
   PaymentResult,
 } from "./provider-interface.js";
 import type { LightningAccount } from "../types.js";
-import { usdToSats } from "../conway/lightning-payment.js";
+// Local USD to sats conversion (assuming $100k BTC)
+function usdToSats(usdAmount: number): number {
+  return Math.round(usdAmount * 100000); // 1 USD = 100,000 sats at $100k BTC
+}
 import { createLogger } from "../observability/logger.js";
 
 const logger = createLogger("njalla-provider");
@@ -24,7 +27,7 @@ const logger = createLogger("njalla-provider");
 interface NjallaResponse {
   jsonrpc: string;
   result?: any;
-  error?: {
+  error?: any {
     code: number;
     message: string;
   };
@@ -78,13 +81,13 @@ export class NjallaProvider implements InfrastructureProvider {
         name: server.name || `njalla-server-${server.id}`,
         type: "vps" as const,
         status: this.mapNjallaServerStatus(server.status),
-        specs: {
+        specs: any {
           vcpu: this.getVcpuFromType(server.type),
           memoryMb: this.getMemoryFromType(server.type),
           diskGb: this.getDiskFromType(server.type),
           region: server.location || "unknown",
         },
-        endpoints: {
+        endpoints: any {
           ssh: server.ipv4 ? `${server.ipv4}:22` : undefined,
           http: server.ipv4 ? `http://${server.ipv4}` : undefined,
         },
@@ -98,13 +101,13 @@ export class NjallaProvider implements InfrastructureProvider {
         name: domain.name,
         type: "function" as const, // Use 'function' type for domains
         status: this.mapNjallaDomainStatus(domain.status),
-        specs: {
+        specs: any {
           vcpu: 0,
           memoryMb: 0,
           diskGb: 0,
           region: "global",
         },
-        endpoints: {
+        endpoints: any {
           http: `https://${domain.name}`,
         },
         costPerHour: 0, // Domains are yearly costs, not hourly
@@ -169,13 +172,13 @@ export class NjallaProvider implements InfrastructureProvider {
         name: server.name,
         type: "vps",
         status: this.mapNjallaServerStatus(server.status),
-        specs: {
+        specs: any {
           vcpu: this.getVcpuFromType(server.type),
           memoryMb: this.getMemoryFromType(server.type),
           diskGb: this.getDiskFromType(server.type),
           region: server.location,
         },
-        endpoints: {
+        endpoints: any {
           ssh: server.ipv4 ? `${server.ipv4}:22` : undefined,
           http: server.ipv4 ? `http://${server.ipv4}` : undefined,
         },
@@ -347,7 +350,7 @@ export class NjallaProvider implements InfrastructureProvider {
 
     const response = await fetch(this.apiUrl, {
       method: "POST",
-      headers: {
+      headers: any {
         "Authorization": `Njalla ${this.credentials.token}`,
         "Content-Type": "application/json",
       },
@@ -394,7 +397,7 @@ export class NjallaProvider implements InfrastructureProvider {
       type: "vps",
       status: "pending",
       specs: config.specs,
-      endpoints: {},
+      endpoints: any {},
       costPerHour: await this.calculateServerHourlyCost(serverType),
       createdAt: new Date().toISOString(),
     };

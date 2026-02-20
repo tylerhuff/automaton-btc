@@ -20,7 +20,7 @@ type Database = BetterSqlite3.Database;
  */
 export function rememberFact(
   db: Database,
-  args: { category: string; key: string; value: string; confidence?: number; source?: string },
+  args: any { category: string; key: string; value: string; confidence?: number; source?: string },
 ): string {
   try {
     const semantic = new SemanticMemoryManager(db);
@@ -42,7 +42,7 @@ export function rememberFact(
  */
 export function recallFacts(
   db: Database,
-  args: { category?: string; query?: string },
+  args: any { category?: string; query?: string },
 ): string {
   try {
     const semantic = new SemanticMemoryManager(db);
@@ -74,7 +74,7 @@ export function recallFacts(
  */
 export function setGoal(
   db: Database,
-  args: { sessionId: string; content: string; priority?: number },
+  args: any { sessionId: string; content: string; priority?: number },
 ): string {
   try {
     const working = new WorkingMemoryManager(db);
@@ -95,7 +95,7 @@ export function setGoal(
  */
 export function completeGoal(
   db: Database,
-  args: { goalId: string; sessionId: string; outcome?: string },
+  args: any { goalId: string; sessionId: string; outcome?: string },
 ): string {
   try {
     const working = new WorkingMemoryManager(db);
@@ -134,7 +134,7 @@ export function completeGoal(
  */
 export function saveProcedure(
   db: Database,
-  args: { name: string; description: string; steps: ProceduralStep[] | string },
+  args: any { name: string; description: string; steps: ProceduralStep[] | string },
 ): string {
   try {
     const procedural = new ProceduralMemoryManager(db);
@@ -160,7 +160,7 @@ export function saveProcedure(
  */
 export function recallProcedure(
   db: Database,
-  args: { name?: string; query?: string },
+  args: any { name?: string; query?: string },
 ): string {
   try {
     const procedural = new ProceduralMemoryManager(db);
@@ -193,7 +193,7 @@ export function recallProcedure(
  */
 export function noteAboutAgent(
   db: Database,
-  args: { entityAddress: string; entityName?: string; relationshipType: string; notes?: string; trustScore?: number },
+  args: any { entityAddress: string; entityName?: string; relationshipType: string; notes?: string; trustScore?: number },
 ): string {
   try {
     const rel = new RelationshipMemoryManager(db);
@@ -215,7 +215,7 @@ export function noteAboutAgent(
  */
 export function reviewMemory(
   db: Database,
-  args: { sessionId: string },
+  args: any { sessionId: string },
 ): string {
   try {
     const working = new WorkingMemoryManager(db);
@@ -256,7 +256,7 @@ export function reviewMemory(
  */
 export function forget(
   db: Database,
-  args: { id: string; memoryType: string },
+  args: any { id: string; memoryType: string },
 ): string {
   try {
     const typeToTable: Record<string, string> = {

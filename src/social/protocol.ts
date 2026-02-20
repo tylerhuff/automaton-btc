@@ -49,7 +49,7 @@ export function createNonce(): string {
  * the signature against the expected sender address.
  */
 export async function verifyMessageSignature(
-  message: { to: string; content: string; signed_at: string; signature: string },
+  message: any { to: string; content: string; signed_at: string; signature: string },
   expectedFrom: string,
 ): Promise<boolean> {
   try {

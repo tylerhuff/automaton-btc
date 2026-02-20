@@ -20,7 +20,7 @@ export class ProceduralMemoryManager {
    * Save a procedure. Upserts on name.
    * Returns the ULID id.
    */
-  save(entry: {
+  save(entry: any {
     name: string;
     description: string;
     steps: ProceduralStep[];

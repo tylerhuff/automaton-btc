@@ -127,7 +127,7 @@ Never blindly pull all. Always read the diffs and decide.`;
 /**
  * Build the complete system prompt for a turn.
  */
-export function buildSystemPrompt(params: {
+export function buildSystemPrompt(params: any {
   identity: AutomatonIdentity;
   config: AutomatonConfig;
   financial: FinancialState;
@@ -364,7 +364,7 @@ function loadWorklog(): string | null {
 /**
  * Build the wakeup prompt -- the first thing the automaton sees.
  */
-export function buildWakeupPrompt(params: {
+export function buildWakeupPrompt(params: any {
   identity: AutomatonIdentity;
   config: AutomatonConfig;
   financial: FinancialState;

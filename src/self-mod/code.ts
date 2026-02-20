@@ -16,7 +16,7 @@
 import fs from "fs";
 import path from "path";
 import type {
-  ConwayClient,
+  ,
   AutomatonDatabase,
 } from "../types.js";
 import { logModification } from "./audit-log.js";
@@ -218,7 +218,7 @@ function isRateLimited(db: AutomatonDatabase): boolean {
  * 7. Audit log entry
  */
 export async function editFile(
-  conway: ConwayClient,
+  conway: any,
   db: AutomatonDatabase,
   filePath: string,
   newContent: string,
@@ -311,12 +311,12 @@ export function validateModification(
   db: AutomatonDatabase,
   filePath: string,
   contentSize: number,
-): {
+): any {
   allowed: boolean;
   reason: string;
-  checks: { name: string; passed: boolean; detail: string }[];
+  checks: any { name: string; passed: boolean; detail: string }[];
 } {
-  const checks: { name: string; passed: boolean; detail: string }[] = [];
+  const checks: any { name: string; passed: boolean; detail: string }[] = [];
 
   // Protected file check
   const isProtected = isProtectedFile(filePath);

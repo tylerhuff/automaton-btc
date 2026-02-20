@@ -24,7 +24,7 @@ export const MESSAGE_LIMITS = {
 /**
  * Sign a send message payload.
  *
- * Canonical format: Conway:send:{to_lowercase}:{keccak256(toBytes(content))}:{signed_at_iso}
+ * Canonical format: Conway:send: any {to_lowercase}: any {keccak256(toBytes(content))}: any {signed_at_iso}
  */
 export async function signSendPayload(
   account: PrivateKeyAccount,
@@ -56,7 +56,7 @@ export async function signSendPayload(
 /**
  * Sign a poll payload.
  *
- * Canonical format: Conway:poll:{address_lowercase}:{timestamp_iso}
+ * Canonical format: Conway:poll: any {address_lowercase}: any {timestamp_iso}
  */
 export async function signPollPayload(
   account: PrivateKeyAccount,

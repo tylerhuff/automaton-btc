@@ -10,7 +10,25 @@
 
 import type { PrivateKeyAccount } from "viem";
 import type { SocialClientInterface, InboxMessage } from "../types.js";
-import { ResilientHttpClient } from "../conway/http-client.js";
+// Simple HTTP client replacement for Conway's ResilientHttpClient
+class SimpleHttpClient {
+  async request(url: string, options: any) {
+    const response = await fetch(url, {
+      method: options.method || 'GET',
+      headers: options.headers || {},
+      body: options.body,
+      signal: AbortSignal.timeout(options.timeout || 30000)
+    });
+    
+    return {
+      ok: response.ok,
+      status: response.status,
+      headers: response.headers,
+      json: () => response.json(),
+      text: () => response.text()
+    };
+  }
+}
 import { signSendPayload, signPollPayload, MESSAGE_LIMITS } from "./signing.js";
 import { validateRelayUrl, validateMessage } from "./validation.js";
 import { createLogger } from "../observability/logger.js";
@@ -33,7 +51,7 @@ export function createSocialClient(
   validateRelayUrl(relayUrl);
 
   const baseUrl = relayUrl.replace(/\/$/, "");
-  const httpClient = new ResilientHttpClient();
+  const httpClient = new SimpleHttpClient();
 
   // Rate limiting state: track outbound message timestamps
   const outboundTimestamps: number[] = [];
@@ -94,7 +112,7 @@ export function createSocialClient(
 
       const res = await httpClient.request(`${baseUrl}/v1/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: any { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         timeout: REQUEST_TIMEOUT_MS,
       });
@@ -122,7 +140,7 @@ export function createSocialClient(
 
       const res = await httpClient.request(`${baseUrl}/v1/messages/poll`, {
         method: "POST",
-        headers: {
+        headers: any {
           "Content-Type": "application/json",
           "X-Wallet-Address": pollAuth.address,
           "X-Signature": pollAuth.signature,
@@ -182,7 +200,7 @@ export function createSocialClient(
 
       const res = await httpClient.request(`${baseUrl}/v1/messages/count`, {
         method: "GET",
-        headers: {
+        headers: any {
           "X-Wallet-Address": pollAuth.address,
           "X-Signature": pollAuth.signature,
           "X-Timestamp": pollAuth.timestamp,

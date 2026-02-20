@@ -15,7 +15,10 @@ import type {
   PaymentResult,
 } from "./provider-interface.js";
 import type { LightningAccount } from "../types.js";
-import { lightningFetch, usdToSats } from "../conway/lightning-payment.js";
+// Local USD to sats conversion (assuming $100k BTC)
+function usdToSats(usdAmount: number): number {
+  return Math.round(usdAmount * 100000); // 1 USD = 100,000 sats at $100k BTC
+}
 import { createLogger } from "../observability/logger.js";
 
 const logger = createLogger("voltage-provider");
@@ -37,7 +40,7 @@ export class VoltageProvider implements InfrastructureProvider {
     try {
       // Test authentication with Voltage API
       const response = await fetch(`${this.apiUrl}/v1/user`, {
-        headers: {
+        headers: any {
           "Authorization": `Bearer ${credentials.apiKey}`,
           "Content-Type": "application/json",
         },
@@ -65,7 +68,7 @@ export class VoltageProvider implements InfrastructureProvider {
     try {
       // List Lightning nodes and BTCPay instances
       const response = await fetch(`${this.apiUrl}/v1/nodes`, {
-        headers: {
+        headers: any {
           "Authorization": `Bearer ${this.credentials.apiKey}`,
           "Content-Type": "application/json",
         },
@@ -83,13 +86,13 @@ export class VoltageProvider implements InfrastructureProvider {
         name: node.name || `voltage-node-${node.id}`,
         type: "lightning-node" as const,
         status: this.mapVoltageStatus(node.status),
-        specs: {
+        specs: any {
           vcpu: 1, // Lightning nodes don't expose vCPU directly
           memoryMb: 1024, // Estimated
           diskGb: node.storage_gb || 10,
           region: node.region || "us-east",
         },
-        endpoints: {
+        endpoints: any {
           api: node.api_url,
           http: node.public_url,
         },
@@ -118,7 +121,7 @@ export class VoltageProvider implements InfrastructureProvider {
 
       const response = await fetch(`${this.apiUrl}/v1/nodes`, {
         method: "POST",
-        headers: {
+        headers: any {
           "Authorization": `Bearer ${this.credentials.apiKey}`,
           "Content-Type": "application/json",
         },
@@ -138,7 +141,7 @@ export class VoltageProvider implements InfrastructureProvider {
         type: "lightning-node",
         status: "pending",
         specs: config.specs,
-        endpoints: {
+        endpoints: any {
           api: node.api_url,
         },
         costPerHour: 0,
@@ -158,7 +161,7 @@ export class VoltageProvider implements InfrastructureProvider {
     try {
       const response = await fetch(`${this.apiUrl}/v1/nodes/${resourceId}`, {
         method: "DELETE",
-        headers: {
+        headers: any {
           "Authorization": `Bearer ${this.credentials.apiKey}`,
         },
       });
@@ -181,7 +184,7 @@ export class VoltageProvider implements InfrastructureProvider {
 
     try {
       const response = await fetch(`${this.apiUrl}/v1/nodes/${resourceId}`, {
-        headers: {
+        headers: any {
           "Authorization": `Bearer ${this.credentials.apiKey}`,
         },
       });
@@ -197,13 +200,13 @@ export class VoltageProvider implements InfrastructureProvider {
         name: node.name,
         type: "lightning-node",
         status: this.mapVoltageStatus(node.status),
-        specs: {
+        specs: any {
           vcpu: 1,
           memoryMb: 1024,
           diskGb: node.storage_gb || 10,
           region: node.region,
         },
-        endpoints: {
+        endpoints: any {
           api: node.api_url,
           http: node.public_url,
         },

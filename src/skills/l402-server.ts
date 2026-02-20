@@ -64,7 +64,7 @@ export class L402EarningServer {
       name: "Echo Service",
       description: "Returns whatever you send (for testing)",
       price_sats: 1,
-      handler: async (params: { message: string }) => {
+      handler: async (params: any { message: string }) => {
         return { echo: params.message, timestamp: new Date().toISOString() };
       }
     });
@@ -473,7 +473,7 @@ export class L402EarningServer {
   /**
    * Get server stats
    */
-  getStats(): {
+  getStats(): any {
     port: number;
     tasks: number;
     pending_invoices: number;

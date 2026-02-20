@@ -9,7 +9,6 @@ import type {
   AutomatonConfig,
   AutomatonDatabase,
   AutomatonIdentity,
-  ConwayClient,
   SurvivalTier,
 } from "../types.js";
 import { formatCredits } from "../conway/credits.js";
@@ -30,7 +29,7 @@ export async function executeFundingStrategies(
   identity: AutomatonIdentity,
   config: AutomatonConfig,
   db: AutomatonDatabase,
-  conway: ConwayClient,
+  conway: any,
 ): Promise<FundingAttempt[]> {
   const attempts: FundingAttempt[] = [];
   const creditsCents = conway ? await conway.getCreditsBalance().catch(() => 0) : 0;

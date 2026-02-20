@@ -153,7 +153,7 @@ export async function runAgentLoop(
   const MAX_IDLE_TURNS = 3; // Force sleep after N turns with no real work
   let idleTurnCount = 0;
 
-  let pendingInput: { content: string; source: string } | undefined = {
+  let pendingInput: any { content: string; source: string } | undefined = {
     content: wakeupInput,
     source: "wakeup",
   };
@@ -302,9 +302,9 @@ export async function runAgentLoop(
 
       // Build a compatible response for the rest of the loop
       const response = {
-        message: { content: routerResult.content, role: "assistant" as const },
+        message: any { content: routerResult.content, role: "assistant" as const },
         toolCalls: routerResult.toolCalls as any[] | undefined,
-        usage: {
+        usage: any {
           promptTokens: routerResult.inputTokens,
           completionTokens: routerResult.outputTokens,
           totalTokens: routerResult.inputTokens + routerResult.outputTokens,

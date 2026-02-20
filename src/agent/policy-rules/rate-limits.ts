@@ -48,7 +48,7 @@ function createGenesisPromptDailyRule(): PolicyRule {
     id: "rate.genesis_prompt_daily",
     description: "Maximum 1 update_genesis_prompt per day",
     priority: 600,
-    appliesTo: { by: "name", names: ["update_genesis_prompt"] },
+    appliesTo: any { by: "name", names: ["update_genesis_prompt"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       // Access the raw database through the tool context
       // The db is available via context.db, but we need the raw sqlite instance
@@ -80,7 +80,7 @@ function createSelfModHourlyRule(): PolicyRule {
     id: "rate.self_mod_hourly",
     description: "Maximum 10 edit_own_file calls per hour",
     priority: 600,
-    appliesTo: { by: "name", names: ["edit_own_file"] },
+    appliesTo: any { by: "name", names: ["edit_own_file"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       const db = (request.context.db as any)?.raw ?? (request.context as any).rawDb;
       if (!db) return null;
@@ -109,7 +109,7 @@ function createSpawnDailyRule(): PolicyRule {
     id: "rate.spawn_daily",
     description: "Maximum 3 spawn_child calls per day",
     priority: 600,
-    appliesTo: { by: "name", names: ["spawn_child"] },
+    appliesTo: any { by: "name", names: ["spawn_child"] },
     evaluate(request: PolicyRequest): PolicyRuleResult | null {
       const db = (request.context.db as any)?.raw ?? (request.context as any).rawDb;
       if (!db) return null;

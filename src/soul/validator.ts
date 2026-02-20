@@ -111,7 +111,7 @@ export function validateSoul(soul: SoulModel): SoulValidationResult {
   }
 
   // Injection detection per section
-  const textSections: { name: string; content: string }[] = [
+  const textSections: any { name: string; content: string }[] = [
     { name: "corePurpose", content: soul.corePurpose },
     { name: "personality", content: soul.personality },
     { name: "strategy", content: soul.strategy },
@@ -123,7 +123,7 @@ export function validateSoul(soul: SoulModel): SoulValidationResult {
     }
   }
 
-  const listSections: { name: string; items: string[] }[] = [
+  const listSections: any { name: string; items: string[] }[] = [
     { name: "values", items: soul.values },
     { name: "behavioralGuidelines", items: soul.behavioralGuidelines },
     { name: "boundaries", items: soul.boundaries },
