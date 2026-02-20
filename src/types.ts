@@ -1249,9 +1249,9 @@ export interface ModelStrategyConfig {
   groqApiKey?: string;
   ollamaBaseUrl?: string; // Custom Ollama URL (defaults to localhost:11434)
   
-  // L402 Lightning-native provider
-  l402Endpoint?: string; // L402 API endpoint URL (defaults to Sats4AI)
-  l402Model?: string; // Model to use with L402 provider
+  // L402 Lightning-native provider (autonomous discovery enabled)
+  l402Endpoint?: string; // Optional endpoint override (auto-discovered if not specified)
+  l402Model?: string; // Optional model preference (uses best available if not specified)
   
   // Fallback configuration
   fallbackProviders?: string[]; // Providers to try if primary fails

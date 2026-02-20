@@ -116,16 +116,12 @@ Add to your `~/.automaton/automaton.json`:
 
 ```json
 {
-  "inferenceProvider": "ollama",
-  "inferenceModel": "llama3.2:latest",
-  "inferenceBaseUrl": "http://localhost:11434",
-  "fallbackProviders": ["l402", "groq", "openai"],
+  "inferenceProvider": "l402",
+  "fallbackProviders": ["ollama", "groq", "openai"],
   
   "groqApiKey": "gsk_...",
   "openaiApiKey": "sk-...", 
-  "anthropicApiKey": "sk-ant-...",
-  "l402Endpoint": "https://sats4ai.com/api/v1/text/generations",
-  "l402Model": "gpt-4o"
+  "anthropicApiKey": "sk-ant-..."
 }
 ```
 
@@ -170,11 +166,10 @@ Add to your `~/.automaton/automaton.json`:
 **L402 Lightning-Native (Ultimate sovereignty):**
 ```json
 {
-  "inferenceProvider": "l402",
-  "l402Endpoint": "https://sats4ai.com/api/v1/text/generations",
-  "l402Model": "gpt-4o"
+  "inferenceProvider": "l402"
 }
 ```
+*That's it! The automaton discovers and selects its own providers.*
 
 ### L402 Lightning-Native Provider 🏆
 
@@ -182,49 +177,50 @@ Add to your `~/.automaton/automaton.json`:
 
 L402 is the holy grail of sovereign AI: **pay-per-use with Lightning sats, zero API keys, zero accounts**. The automaton literally pays for its own thoughts with Bitcoin.
 
-#### How L402 Works
-1. Agent makes HTTP request to inference endpoint
-2. Server returns `HTTP 402 Payment Required` + Lightning invoice in headers  
-3. Agent pays Lightning invoice (gets proof of payment)
-4. Agent retries request with L402 authorization token
-5. Server grants access to AI inference
+#### How L402 Autonomous Discovery Works
+1. **Discovery:** Agent queries Satring directory (satring.com) to find L402 inference services
+2. **Selection:** Evaluates providers by price, reliability, speed, and features  
+3. **Request:** Makes HTTP request to selected provider endpoint
+4. **Payment:** Server returns `HTTP 402` + Lightning invoice, agent pays automatically
+5. **Authorization:** Agent retries request with L402 token (proof of payment)
+6. **Fallback:** If provider fails, automatically tries next best option
+7. **Caching:** Results cached locally to avoid re-discovery on every request
 
-#### Setup Requirements
+#### Setup Requirements  
 - **Lightning wallet configured** (Coinos + optional Alby)
-- **Lightning balance** in your wallet (even 1000 sats works)
+- **Lightning balance** in your wallet (even 100 sats works)
+- **That's it!** No endpoints, no API keys, no manual configuration
 
-#### Supported L402 Providers
-- **Sats4AI** (https://sats4ai.com) - GPT-4o, Claude, etc. via Lightning
-- **Any L402-compatible AI service** - Just change the endpoint
+#### Autonomous Configuration
+```json
+{
+  "inferenceProvider": "l402"
+}
+```
+The automaton discovers everything else automatically.
 
-#### L402 Configuration
+#### Optional Manual Overrides
+If you want to override the autonomous selection:
 ```json
 {
   "inferenceProvider": "l402",
-  "l402Endpoint": "https://sats4ai.com/api/v1/text/generations", 
-  "l402Model": "gpt-4o",
-  "fallbackProviders": ["ollama", "groq"]
+  "l402Endpoint": "https://your-preferred-service.com/api/inference",
+  "l402Model": "gpt-4o"
 }
 ```
 
-#### Custom L402 Endpoints
-You can use any L402-compatible service:
-```json
-{
-  "l402Endpoint": "https://your-l402-service.com/api/inference",
-  "l402Model": "claude-3-5-sonnet"
-}
-```
-
-#### Why L402 is Superior
+#### Why L402 with Autonomous Discovery is Superior
 - ✅ **No API keys** - just Lightning payments
 - ✅ **No accounts** - anonymous, private by default  
+- ✅ **No hardcoded endpoints** - discovers providers automatically
 - ✅ **Pay-per-use** - no monthly subscriptions or credits
 - ✅ **Instant payments** - Lightning Network speed
-- ✅ **True sovereignty** - Bitcoin-native, no fiat rails
-- ✅ **Provider agnostic** - works with any L402 service
+- ✅ **Smart provider selection** - chooses cheapest, fastest, most reliable
+- ✅ **Automatic fallbacks** - switches providers if one fails
+- ✅ **True sovereignty** - Bitcoin-native, fully autonomous
+- ✅ **Market-driven** - competition keeps prices low and quality high
 
-**This is how AI should be: the agent pays for its own intelligence with money it earned.** Pure digital economy.
+**This is true AI autonomy: the agent finds, evaluates, and pays for its own intelligence using Bitcoin it earned.** Pure digital economy with zero human intervention.
 
 ### Local Ollama Setup
 

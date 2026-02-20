@@ -34,9 +34,9 @@ export interface ProviderManagerConfig {
   groqApiKey?: string;
   ollamaBaseUrl?: string;
   
-  // L402 Lightning-native provider
-  l402Endpoint?: string;
-  l402Model?: string;
+  // L402 Lightning-native provider (auto-discovery enabled)
+  l402Endpoint?: string; // Optional override for manual endpoint
+  l402Model?: string; // Optional model preference
 }
 
 export class ProviderManager {
@@ -185,10 +185,12 @@ export class ProviderManager {
       defaultModel: this.config.inferenceProvider === "ollama" ? this.config.inferenceModel : "llama3.2:latest",
     };
 
-    // L402 Lightning-native provider (always available if Lightning wallet configured)
+    // L402 Lightning-native provider (autonomous discovery enabled)
+    // Only needs Lightning wallet - discovers endpoints automatically
     configs.l402 = {
       provider: "l402",
-      baseUrl: this.config.l402Endpoint || this.config.inferenceBaseUrl || "https://sats4ai.com/api/v1/text/generations",
+      // Optional overrides (discovery system figures these out if not specified)
+      baseUrl: this.config.l402Endpoint || this.config.inferenceBaseUrl,
       defaultModel: this.config.l402Model || this.config.inferenceModel || "gpt-4o",
     };
 
