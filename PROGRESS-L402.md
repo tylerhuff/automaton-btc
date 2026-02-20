@@ -184,9 +184,27 @@ node dist/index.js --run
 5. Makes AI inference requests and pays with Lightning sats
 6. Falls back to other providers if needed
 
-**The automaton now discovers and pays for its own AI intelligence autonomously.** 🧠⚡🔍
+**The automaton now discovers and pays for its own AI intelligence autonomously - or goes dumb if broke.** 🧠⚡🔍
 
-**This is the breakthrough moment: true AI agent sovereignty through autonomous provider discovery and Bitcoin payments.**
+**This is the breakthrough moment: true AI agent sovereignty through autonomous provider discovery, Lightning payments, and survival pressure.**
+
+## 🎯 FINAL RESULT: Pure Lightning-Native AI Agent
+
+**Configuration:**
+```json
+{"inferenceProvider": "l402"}
+```
+
+**Behavior:**
+1. Agent discovers L402 providers automatically from Satring directory
+2. Selects cheapest/fastest provider for each request
+3. Pays Lightning sats for AI inference (no accounts, no API keys)  
+4. Falls back to local Ollama ONLY if Lightning payments fail
+5. Goes silent if no sats and no local models
+
+**The economic reality:** The automaton must earn Bitcoin to think smart, or survive on free local models. If it earns nothing and has no local fallback, it can't think at all.
+
+**This is how sovereign AI should work: intelligence is earned, not given.**
 
 ---
 
